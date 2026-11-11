@@ -2,7 +2,7 @@
 // ตอนนี้ "ยังไม่ถูกเรียกใช้ที่ไหน" มีแค่ตัวแปลง JSON ของ Jikan ให้เป็นรูปร่างเดียวกับ mock/anime.json
 // พอต่อจริง: หน้าที่ต้องการข้อมูลจาก Jikan เรียก getTopAnime() แล้วส่งต่อให้ AnimeGrid ได้เลย ไม่ต้องแก้การ์ด
 
-const JIKAN = 'https://api.jikan.moe/v4';
+const TENRAI = 'https://api.tenrai.org/v1';
 
 const STATUS = { 'Currently Airing': 'airing', 'Finished Airing': 'finished', 'Not yet aired': 'upcoming' };
 
@@ -24,8 +24,8 @@ export function toAnime(j) {
 
 // TODO (ขั้นต่อไป): ต่อใช้งานจริง และระวัง rate limit ของ Jikan (ประมาณ 3 request ต่อวินาที)
 export async function getTopAnime() {
-  const res = await fetch(`${JIKAN}/top/anime`);
-  if (!res.ok) throw new Error(`Jikan ตอบกลับ ${res.status}`);
+  const res = await fetch(`${TENRAI}/top/anime`);
+  if (!res.ok) throw new Error(`TENRAI ตอบกลับ ${res.status}`);
   const data = await res.json();
   return data.data.map(toAnime);
 }

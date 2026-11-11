@@ -1,6 +1,6 @@
 import { toAnime } from './jikan';
 
-test('toAnime แปลง JSON ของ Jikan เป็นรูปร่างเดียวกับข้อมูลของเรา', () => {
+test('toAnime แปลง JSON ของ TENRAI เป็นรูปร่างเดียวกับข้อมูลของเรา', () => {
   const result = toAnime({
     mal_id: 52991,
     title: 'Sousou no Frieren',
