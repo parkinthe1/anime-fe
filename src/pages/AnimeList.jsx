@@ -17,7 +17,7 @@ function AnimeList() {
     async function load() {
       setStatus('loading');
       try {
-        const list = await getAnimeById();
+        const a = await getAnimeById(id);
         if (!Array.isArray(list)) throw new Error('ข้อมูลที่ได้ไม่ใช่รายการอนิเมะ');
         if (!ignore) { setItems(list); setStatus('success'); }
       } catch (err) {
