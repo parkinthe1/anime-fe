@@ -29,3 +29,13 @@ export async function getTopAnime() {
   const data = await res.json();
   return data.data.map(toAnime);
 }
+export async function getAnimeById(id) {
+  const res = await fetch(`${TENRAI}/anime/${id}`);
+
+  if (!res.ok) {
+    throw new Error(`TENRAI ตอบกลับ ${res.status}`);
+  }
+
+  const data = await res.json();
+  return toAnime(data.data);
+}

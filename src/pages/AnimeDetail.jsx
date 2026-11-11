@@ -6,7 +6,8 @@ import AnimeActions from '../components/AnimeActions';
 import { ErrorBox, Loading } from '../components/common/States';
 import { getAnime, getReviews, postReview } from '../api/backend';
 import { useAuth } from '../auth/AuthContext';
-
+import { getAnimeById } from '../api/jikan';
+import { getReviews, postReview } from '../api/backend';
 const STATUS_TH = { airing: 'กำลังฉาย', finished: 'จบแล้ว', upcoming: 'ยังไม่ฉาย' };
 
 function AnimeDetail() {
@@ -23,7 +24,7 @@ function AnimeDetail() {
     async function load() {
       setStatus('loading');
       try {
-        const a = await getAnime(id);
+        const a = await getAnimeById(id);
         if (!ignore) { setAnime(a); setStatus('success'); }
       } catch (err) {
         if (!ignore) { setError(err); setStatus('error'); }
