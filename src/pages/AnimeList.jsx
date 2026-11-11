@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import AnimeGrid from '../components/AnimeGrid';
 import { inputClass } from '../components/common/States';
-import { getAnimeList } from '../api/backend';
+import { getAnimeById } from '../api/jikan';
 
 function AnimeList() {
   const [query, setQuery] = useState('');            // คำค้น กรองในเครื่อง ไม่ยิง API ซ้ำ
@@ -17,7 +17,7 @@ function AnimeList() {
     async function load() {
       setStatus('loading');
       try {
-        const list = await getAnimeList();
+        const list = await getAnimeById();
         if (!Array.isArray(list)) throw new Error('ข้อมูลที่ได้ไม่ใช่รายการอนิเมะ');
         if (!ignore) { setItems(list); setStatus('success'); }
       } catch (err) {
