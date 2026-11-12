@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getAnimeList } from '../../api/backend';
-import { ErrorBox, Loading, btnPrimary, inputClass } from '../../components/common/States';
+import { getTopAnime } from '../../api/tenrai';
+import { getAnimeOverrides } from '../../api/backend';
+import { withOverrides } from '../../api/catalog';
+import { ErrorBox, Loading, inputClass } from '../../components/common/States';
 
-// ตารางอนิเมะทั้งหมด: ใช้ GET /api/anime ตัวเดิม (สาธารณะ) ส่วนที่ต้องเป็น admin คือปุ่มแก้ไข/เพิ่ม ซึ่งพาไปหน้าฟอร์ม
+// รายการอนิเมะเดียวกับที่หน้าเว็บแสดง (ดึงจาก TENRAI) admin กดแก้ไขเพื่อใส่ชื่อไทย/เรื่องย่อไทยทับข้อมูลของ TENRAI
+// ที่นี่ดึงที่ admin แก้ไว้แบบเข้มงวด (ถ้าดึงไม่ได้ให้ขึ้น error ไม่ใช่แสดงเหมือนยังไม่เคยแก้)
 function AdminAnime() {
   const [items, setItems] = useState([]);
   const [status, setStatus] = useState('loading');
@@ -15,9 +18,11 @@ function AdminAnime() {
     let ignore = false;
     async function load() {
       setStatus('loading');
+      setError(null);
       try {
-        const list = await getAnimeList();
-        if (!ignore) { setItems(list); setStatus('success'); }
+        const [top, list] = await Promise.all([getTopAnime(), getAnimeOverrides()]);
+        const overrides = new Map(list.map(o => [Number(o.id), o]));
+        if (!ignore) { setItems(withOverrides(top, overrides)); setStatus('success'); }
       } catch (err) {
         if (!ignore) { setError(err); setStatus('error'); }
       }
@@ -36,13 +41,13 @@ function AdminAnime() {
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-white">อนิเมะทั้งหมด</h2>
-          {status === 'success' && <p className="text-sm text-slate-400">แสดง {shown.length} จาก {items.length} เรื่อง</p>}
+          <p className="text-sm text-slate-400">
+            ข้อมูลมาจาก TENRAI กดแก้ไขเพื่อใส่ชื่อไทย แนว โปสเตอร์ หรือเรื่องย่อของเราเอง (จะแสดงแทนข้อมูลของ TENRAI ในหน้าเว็บ)
+          </p>
+          {status === 'success' && <p className="text-sm text-slate-500">แสดง {shown.length} จาก {items.length} เรื่อง</p>}
         </div>
-        <div className="flex gap-2">
-          <input value={query} onChange={(e) => setQuery(e.target.value)}
-                 placeholder="ค้นชื่อ หรือพิมพ์เลข id" className={inputClass + ' md:w-64'} />
-          <Link to="/admin/anime/new" className={btnPrimary + ' whitespace-nowrap'}>+ เพิ่มอนิเมะ</Link>
-        </div>
+        <input value={query} onChange={(e) => setQuery(e.target.value)}
+               placeholder="ค้นชื่อ หรือพิมพ์เลข id" className={inputClass + ' md:w-64'} />
       </div>
 
       {status === 'loading' && <Loading />}
@@ -56,6 +61,7 @@ function AdminAnime() {
                 <th className="px-4 py-3">แนว</th>
                 <th className="px-4 py-3">ปี</th>
                 <th className="px-4 py-3">ตอน</th>
+                <th className="px-4 py-3">ข้อมูล</th>
                 <th className="px-4 py-3 text-right">จัดการ</th>
               </tr>
             </thead>
@@ -69,14 +75,19 @@ function AdminAnime() {
                   <td className="px-4 py-2 text-slate-300">{a.genre ?? '-'}</td>
                   <td className="px-4 py-2 text-slate-300">{a.year ?? '-'}</td>
                   <td className="px-4 py-2 text-slate-300">{a.episodes ?? '-'}</td>
+                  <td className="px-4 py-2">
+                    {a.hasOverride
+                      ? <span className="rounded-full bg-violet-500/20 px-2 py-0.5 text-xs text-violet-300">แก้ไขแล้ว</span>
+                      : <span className="text-xs text-slate-500">ใช้ของ TENRAI</span>}
+                  </td>
                   <td className="px-4 py-2 text-right">
                     <Link to={`/admin/anime/${a.id}`} className="text-violet-400 hover:underline">แก้ไข</Link>
                   </td>
                 </tr>
               ))}
               {shown.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-500">
-                  {items.length === 0 ? 'ยังไม่มีอนิเมะในระบบ' : 'ไม่พบอนิเมะที่ค้นหา'}
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-500">
+                  {items.length === 0 ? 'TENRAI ไม่มีรายการอนิเมะ' : 'ไม่พบอนิเมะที่ค้นหา'}
                 </td></tr>
               )}
             </tbody>

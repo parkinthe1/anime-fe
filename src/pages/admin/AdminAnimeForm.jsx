@@ -1,140 +1,119 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
-import { getAdminAnime, createAnime, updateAnime, deleteAnime } from '../../api/backend';
-import { ErrorBox, Loading, ConfirmBox, btnPrimary, btnDanger, btnGhost, inputClass } from '../../components/common/States';
+import { getAdminStats } from '../../api/backend';
+import { getAnimeById } from '../../api/tenrai';
+import { ErrorBox, Loading } from '../../components/common/States';
 
-const EMPTY = { title: '', titleTh: '', year: '', genre: '', episodes: '', status: 'finished', poster: '', synopsis: '' };
+const dateTH = (iso) => new Date(iso).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
 
-// ฟอร์มเดียวใช้ทั้ง "เพิ่ม" (/admin/anime/new) และ "แก้ไข" (/admin/anime/:id) แยกด้วยว่ามี id ใน URL หรือไม่
-function AdminAnimeForm() {
-  const { id } = useParams();
-  const isEdit = Boolean(id);
+function StatCard({ label, value, to }) {
+  const body = (
+    <>
+      <p className="text-sm text-slate-400">{label}</p>
+      <p className="mt-1 text-3xl font-semibold text-white">{value}</p>
+    </>
+  );
+  const cls = 'rounded-xl border border-slate-800 bg-slate-900 p-4';
+  return to ? <Link to={to} className={cls + ' block hover:border-violet-500/60'}>{body}</Link> : <div className={cls}>{body}</div>;
+}
+
+function AdminDashboard() {
   const { token } = useAuth();
-  const navigate = useNavigate();
-
-  const [form, setForm] = useState(EMPTY);
-  const [status, setStatus] = useState(isEdit ? 'loading' : 'ready');   // loading | ready | error
-  const [loadError, setLoadError] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [status, setStatus] = useState('loading');
+  const [error, setError] = useState(null);
+  const [titles, setTitles] = useState({});   // id -> ชื่อ (ดึงจาก TENRAI เพราะ backend เก็บแค่ id)
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (!isEdit) return;
     let ignore = false;
     async function load() {
       setStatus('loading');
       try {
-        const a = await getAdminAnime(id, token);
-        if (!ignore) {
-          setForm({ ...EMPTY, ...Object.fromEntries(Object.entries(a).map(([k, v]) => [k, v ?? ''])) });
-          setStatus('ready');
-        }
+        const data = await getAdminStats(token);
+        if (!ignore) { setStats(data); setStatus('success'); }
       } catch (err) {
-        if (!ignore) { setLoadError(err); setStatus('error'); }
+        if (!ignore) { setError(err); setStatus('error'); }
       }
     }
     load();
     return () => { ignore = true; };
-  }, [id, isEdit, token]);
+  }, [token, reloadKey]);
 
-  const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setSaving(true);
-    setSaveError(null);
-    const fields = {
-      title: form.title.trim(),
-      titleTh: form.titleTh.trim() || null,
-      year: form.year === '' ? null : Number(form.year),
-      genre: form.genre.trim() || null,
-      episodes: form.episodes === '' ? null : Number(form.episodes),
-      status: form.status,
-      poster: form.poster.trim() || null,
-      synopsis: form.synopsis.trim(),
-    };
-    try {
-      if (isEdit) await updateAnime(id, fields, token);
-      else await createAnime(fields, token);
-      navigate('/admin/anime');
-    } catch (err) {
-      setSaveError(err.message);
-      setSaving(false);
-    }
-  }
-
-  async function handleDelete() {
-    setSaving(true);
-    try {
-      await deleteAnime(id, token);
-      navigate('/admin/anime');
-    } catch (err) {
-      setSaveError(err.message);
-      setConfirmDelete(false);
-      setSaving(false);
-    }
-  }
+  useEffect(() => {
+    if (!stats) return;
+    let ignore = false;
+    (async () => {
+      for (let i = 0; i < stats.topVoted.length; i++) {
+        const a = stats.topVoted[i];
+        if (a.title) continue;
+        if (i > 0) await new Promise(r => setTimeout(r, 350));   // กัน rate limit ของ TENRAI
+        try {
+          const detail = await getAnimeById(a.id);
+          if (!ignore) setTitles(t => ({ ...t, [a.id]: detail.title }));
+        } catch { /* ไม่ได้ชื่อก็แสดงเป็นเลข id */ }
+      }
+    })();
+    return () => { ignore = true; };
+  }, [stats]);
 
   if (status === 'loading') return <Loading />;
-  if (status === 'error') return <ErrorBox error={loadError} />;
+  if (status === 'error') return <ErrorBox error={error} onRetry={() => setReloadKey(k => k + 1)} />;
 
-  const label = 'block text-sm text-slate-300';
+  const box = 'rounded-xl border border-slate-800 bg-slate-900 p-4';
   return (
-    <div className="max-w-2xl">
-      <Link to="/admin/anime" className="text-sm text-slate-400 hover:text-violet-300">← กลับไปรายการอนิเมะ</Link>
-      <h2 className="mb-4 mt-2 text-lg font-semibold text-white">{isEdit ? `แก้ไขอนิเมะ #${id}` : 'เพิ่มอนิเมะใหม่'}</h2>
+    <div className="space-y-8">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+        <StatCard label="อนิเมะที่แก้ข้อมูล" value={stats.overrides} to="/admin/anime" />
+        <StatCard label="สมาชิก" value={stats.members} to="/admin/members" />
+        <StatCard label="admin" value={stats.admins} />
+        <StatCard label="โหวต" value={stats.votes} />
+        <StatCard label="อยากดู" value={stats.wishlistItems} />
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <label className={label}>ชื่อเรื่อง (อังกฤษ/โรมาจิ)
-          <input value={form.title} onChange={set('title')} required className={inputClass + ' mt-1'} />
-        </label>
-        <label className={label}>ชื่อไทย
-          <input value={form.titleTh} onChange={set('titleTh')} className={inputClass + ' mt-1'} />
-        </label>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <label className={label}>ปีที่ฉาย
-            <input type="number" value={form.year} onChange={set('year')} className={inputClass + ' mt-1'} />
-          </label>
-          <label className={label}>จำนวนตอน
-            <input type="number" min="0" value={form.episodes} onChange={set('episodes')} className={inputClass + ' mt-1'} />
-          </label>
-          <label className={label}>แนว
-            <input value={form.genre} onChange={set('genre')} className={inputClass + ' mt-1'} />
-          </label>
-          <label className={label}>สถานะ
-            <select value={form.status} onChange={set('status')} className={inputClass + ' mt-1'}>
-              <option value="airing">กำลังฉาย</option>
-              <option value="finished">จบแล้ว</option>
-              <option value="upcoming">ยังไม่ฉาย</option>
-            </select>
-          </label>
-        </div>
-        <label className={label}>ลิงก์โปสเตอร์
-          <input value={form.poster} onChange={set('poster')} placeholder="https://..." className={inputClass + ' mt-1'} />
-        </label>
-        <label className={label}>เรื่องย่อ
-          <textarea value={form.synopsis} onChange={set('synopsis')} rows={4} className={inputClass + ' mt-1'} />
-        </label>
+      <div className="grid gap-6 md:grid-cols-2">
+        <section className={box}>
+          <h2 className="font-semibold text-white">อนิเมะที่สมาชิกให้คะแนนสูงสุด</h2>
+          {stats.topVoted.length === 0 ? (
+            <p className="py-6 text-center text-sm text-slate-500">ยังไม่มีใครโหวต</p>
+          ) : (
+            <ol className="mt-3 divide-y divide-slate-800">
+              {stats.topVoted.map((a, i) => (
+                <li key={a.id} className="flex items-center gap-3 py-2">
+                  <span className="w-5 text-sm text-slate-500">{i + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <Link to={`/anime/${a.id}`} className="block truncate text-sm font-medium text-white hover:text-violet-300">{a.title ?? titles[a.id] ?? `อนิเมะ #${a.id}`}</Link>
+                    {a.titleTh && <p className="truncate text-xs text-slate-400">{a.titleTh}</p>}
+                  </div>
+                  <span className="text-sm text-slate-300">⭐ {a.voteAverage} <span className="text-xs text-slate-500">({a.voteCount})</span></span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
 
-        {saveError && <p role="alert" className="text-sm text-red-400">{saveError}</p>}
-
-        <div className="flex items-center gap-2">
-          <button type="submit" disabled={saving || form.title.trim() === ''} className={btnPrimary}>
-            {saving ? 'กำลังบันทึก...' : 'บันทึก'}
-          </button>
-          <Link to="/admin/anime" className={btnGhost}>ยกเลิก</Link>
-          {isEdit && <button type="button" onClick={() => setConfirmDelete(true)} disabled={saving} className={btnDanger + ' ml-auto'}>ลบ</button>}
-        </div>
-      </form>
-
-      <ConfirmBox open={confirmDelete} busy={saving} title={`ลบ ${form.title} ?`} confirmText="ลบ"
-                  onConfirm={handleDelete} onCancel={() => setConfirmDelete(false)}>
-        <p>ลบแล้วกู้คืนไม่ได้ (รีวิวและคะแนนของสมาชิกผูกกับ id ของ TENRAI จึงไม่ถูกลบ)</p>
-      </ConfirmBox>
+        <section className={box}>
+          <h2 className="font-semibold text-white">สมาชิกใหม่ล่าสุด</h2>
+          <ul className="mt-3 divide-y divide-slate-800">
+            {stats.newestMembers.map(m => (
+              <li key={m.id} className="flex items-center justify-between py-2 text-sm">
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-white">{m.displayName}</p>
+                  <p className="truncate text-xs text-slate-400">{m.email}</p>
+                </div>
+                <div className="text-right text-xs text-slate-500">
+                  {m.role === 'admin' && <span className="mr-2 rounded-full bg-violet-500/20 px-2 py-0.5 text-violet-300">admin</span>}
+                  {dateTH(m.createdAt)}
+                </div>
+              </li>
+            ))}
+          </ul>
+          <Link to="/admin/members" className="mt-3 inline-block text-sm text-violet-400 hover:underline">ดูสมาชิกทั้งหมด</Link>
+        </section>
+      </div>
     </div>
   );
 }
 
-export default AdminAnimeForm;
+export default AdminDashboard;

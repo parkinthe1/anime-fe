@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import FeaturedCarousel from '../components/FeaturedCarousel';
 import { ErrorBox, Loading, btnPrimary, btnGhost } from '../components/common/States';
 import { getTopAnime } from '../api/tenrai';
+import { fetchOverrideMap, withOverrides } from '../api/catalog';
 import { useAuth } from '../auth/AuthContext';
 
 // สลับลำดับแบบสุ่มบนสำเนา ไม่แตะ array เดิม
@@ -27,7 +28,8 @@ function Home() {
     async function load() {
       setStatus('loading');
       try {
-        const list = await getTopAnime();
+        const [top, overrides] = await Promise.all([getTopAnime(), fetchOverrideMap()]);
+        const list = Array.isArray(top) ? withOverrides(top, overrides) : top;
         if (!ignore) { setPicks(shuffle(list)); setStatus('success'); }
       } catch (err) {
         if (!ignore) { setError(err); setStatus('error'); }

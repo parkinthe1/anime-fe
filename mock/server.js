@@ -15,7 +15,8 @@ const members = [
 const reviews = [];                 // { id, animeId, memberId, text, createdAt }
 const votes = new Map();            // `${animeId}:${memberId}` -> score
 const wishlist = new Map();         // memberId -> Set(animeId)
-let nextMemberId = 3, nextReviewId = 1, nextAnimeId = 100;
+const overrides = new Map();        // animeId (ของ TENRAI) -> { id, titleTh, genre, poster, synopsis }
+let nextMemberId = 3, nextReviewId = 1;
 
 const publicMember = (m) => ({ id: m.id, email: m.email, displayName: m.displayName, role: m.role, createdAt: m.createdAt });
 const fail = (res, status, error) => res.status(status).json({ error });
@@ -81,6 +82,8 @@ app.get('/api/anime', (req, res) => {
   res.json({ items });
 });
 
+app.get('/api/anime-overrides', (req, res) => res.json({ items: [...overrides.values()].sort((a, b) => a.id - b.id) }));
+
 app.get('/api/anime/:id', (req, res) => {
   const a = anime.find(x => x.id === Number(req.params.id));
   if (!a) return fail(res, 404, 'ไม่พบอนิเมะเรื่องนี้');
@@ -141,7 +144,7 @@ app.get('/api/admin/stats', admin, (req, res) => {
     .sort((a, b) => b.voteAverage - a.voteAverage || b.voteCount - a.voteCount)
     .slice(0, 5);
   res.json({
-    anime: anime.length,
+    overrides: overrides.size,
     members: members.length,
     admins: members.filter(m => m.role === 'admin').length,
     votes: votes.size,
@@ -163,41 +166,25 @@ app.put('/api/admin/members/:id/role', admin, (req, res) => {
   res.json(publicMember(m));
 });
 
-function readAnimeBody(body) {
-  const title = String(body?.title ?? '').trim();
-  if (!title) return { error: 'ต้องใส่ชื่อเรื่อง' };
-  const year = body.year === '' || body.year == null ? null : Number(body.year);
-  const episodes = body.episodes === '' || body.episodes == null ? null : Number(body.episodes);
-  if ((year != null && !Number.isInteger(year)) || (episodes != null && !Number.isInteger(episodes))) return { error: 'ปีและจำนวนตอนต้องเป็นตัวเลข' };
-  const status = body.status || 'finished';
-  if (!['airing', 'finished', 'upcoming'].includes(status)) return { error: 'status ต้องเป็น airing, finished หรือ upcoming' };
-  const value = { title, titleTh: body.titleTh || null, year, genre: body.genre || null, episodes, status, poster: body.poster || null, synopsis: body.synopsis || '' };
-  if (body.rating !== undefined) value.rating = body.rating;   // ไม่ส่งมา = คงค่าเดิม (ตอนแก้ไข) ไม่ใช่ล้างเป็น null
-  return { value };
-}
-app.get('/api/admin/anime/:id', admin, (req, res) => {
-  const a = anime.find(x => x.id === Number(req.params.id));
-  return a ? res.json(a) : fail(res, 404, 'ไม่พบอนิเมะเรื่องนี้');
+// ---------- ข้อมูลที่ admin แก้ทับข้อมูลของ TENRAI (ชื่อไทย แนว โปสเตอร์ เรื่องย่อ) อ้างด้วย id ของ TENRAI ----------
+const OVERRIDE_LIMITS = { titleTh: 255, genre: 50, poster: 2000, synopsis: 5000 };
+app.put('/api/admin/anime-overrides/:id', admin, (req, res) => {
+  const id = Number(req.params.id);
+  if (!validAnimeId(id)) return fail(res, 400, 'id ไม่ถูกต้อง');
+  const value = { id };
+  for (const [field, max] of Object.entries(OVERRIDE_LIMITS)) {
+    const raw = req.body?.[field];
+    const t = raw == null ? '' : String(raw).trim();
+    if (t.length > max) return fail(res, 400, `${field} ยาวเกิน ${max} ตัวอักษร`);
+    value[field] = t === '' ? null : t;
+  }
+  if (value.poster && !/^https?:\/\//i.test(value.poster)) return fail(res, 400, 'ลิงก์โปสเตอร์ต้องขึ้นต้นด้วย http:// หรือ https://');
+  if (Object.keys(OVERRIDE_LIMITS).every(f => value[f] === null)) return fail(res, 400, 'ไม่มีข้อมูลที่จะแก้ไข ถ้าจะกลับไปใช้ข้อมูลของ TENRAI ให้ลบแทน');
+  overrides.set(id, value);
+  res.json(value);
 });
-app.post('/api/admin/anime', admin, (req, res) => {
-  const { value, error } = readAnimeBody(req.body);
-  if (error) return fail(res, 400, error);
-  const a = { rating: null, id: nextAnimeId++, ...value };
-  anime.push(a);
-  res.status(201).json(a);
-});
-app.put('/api/admin/anime/:id', admin, (req, res) => {
-  const i = anime.findIndex(x => x.id === Number(req.params.id));
-  if (i < 0) return fail(res, 404, 'ไม่พบอนิเมะเรื่องนี้');
-  const { value, error } = readAnimeBody(req.body);
-  if (error) return fail(res, 400, error);
-  anime[i] = { ...anime[i], ...value };
-  res.json(anime[i]);
-});
-app.delete('/api/admin/anime/:id', admin, (req, res) => {
-  const i = anime.findIndex(x => x.id === Number(req.params.id));
-  if (i < 0) return fail(res, 404, 'ไม่พบอนิเมะเรื่องนี้');
-  anime.splice(i, 1);   // ไม่ลบรีวิว/คะแนน/wishlist เพราะอ้างด้วย id ของ TENRAI ไม่ใช่ id ในรายการของทีม
+app.delete('/api/admin/anime-overrides/:id', admin, (req, res) => {
+  overrides.delete(Number(req.params.id));
   res.status(204).end();
 });
 

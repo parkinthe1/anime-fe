@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import AnimeGrid from '../components/AnimeGrid';
 import { inputClass } from '../components/common/States';
 import { getTopAnime } from '../api/tenrai';
+import { fetchOverrideMap, withOverrides } from '../api/catalog';
 
 function AnimeList() {
   const [query, setQuery] = useState('');
@@ -21,7 +22,8 @@ function AnimeList() {
       setError(null);
 
       try {
-        const list = await getTopAnime();
+        const [top, overrides] = await Promise.all([getTopAnime(), fetchOverrideMap()]);
+        const list = Array.isArray(top) ? withOverrides(top, overrides) : top;
 
         if (!Array.isArray(list)) {
           throw new Error('ข้อมูลที่ได้ไม่ใช่รายการอนิเมะ');

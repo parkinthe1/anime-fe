@@ -43,7 +43,6 @@ function App() {
             <Route path="/admin" element={<RequireRole role="admin"><AdminLayout /></RequireRole>}>
               <Route index element={<AdminDashboard />} />
               <Route path="anime" element={<AdminAnime />} />
-              <Route path="anime/new" element={<AdminAnimeForm />} />
               <Route path="anime/:id" element={<AdminAnimeForm />} />
               <Route path="members" element={<AdminMembers />} />
             </Route>

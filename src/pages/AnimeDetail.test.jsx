@@ -4,7 +4,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '../auth/AuthContext';
 import AnimeDetail from './AnimeDetail';
 import { getAnimeById } from '../api/tenrai';
-import { getAnimeStats, getReviews, postReview } from '../api/backend';
+import { getAnimeOverrides, getAnimeStats, getReviews, postReview } from '../api/backend';
 
 jest.mock('../api/backend');
 jest.mock('../api/tenrai');
@@ -24,6 +24,7 @@ function renderDetail() {
 beforeEach(() => {
   localStorage.clear();
   getAnimeStats.mockResolvedValue({ voteAverage: null, voteCount: 0 });
+  getAnimeOverrides.mockResolvedValue([]);
 });
 
 test('โหลดสำเร็จ ต้องเห็นรายละเอียดและรีวิวที่มีอยู่', async () => {
@@ -96,4 +97,23 @@ test('member ส่งรีวิว ต้องเรียก backend ด้
   expect(postReview).toHaveBeenCalledWith('1', 'สนุกมาก เนื้อเรื่องดี', 'tok');
   expect(await screen.findByText('สนุกมาก เนื้อเรื่องดี')).toBeInTheDocument();
   expect(screen.getByText('Demo')).toBeInTheDocument();
+});
+
+test('เรื่องย่อไทยที่ admin แก้ทับ ต้องแสดงแทนเรื่องย่อของ TENRAI', async () => {
+  getAnimeById.mockResolvedValue({ ...FRIEREN, synopsis: 'An elf sets out again.' });
+  getAnimeOverrides.mockResolvedValue([{ id: 1, titleTh: null, genre: null, poster: null, synopsis: 'เอลฟ์ผู้ไม่แก่ออกเดินทางอีกครั้ง' }]);
+  getReviews.mockResolvedValue({ items: [] });
+  renderDetail();
+
+  expect(await screen.findByText('เอลฟ์ผู้ไม่แก่ออกเดินทางอีกครั้ง')).toBeInTheDocument();
+  expect(screen.queryByText('An elf sets out again.')).not.toBeInTheDocument();
+});
+
+test('ดึงข้อมูลที่ admin แก้ไม่ได้ หน้าเรื่องต้องยังแสดงข้อมูลจาก TENRAI', async () => {
+  getAnimeById.mockResolvedValue(FRIEREN);
+  getAnimeOverrides.mockRejectedValue(new Error('down'));
+  getReviews.mockResolvedValue({ items: [] });
+  renderDetail();
+
+  expect(await screen.findByText('เอลฟ์ออกเดินทางอีกครั้ง')).toBeInTheDocument();
 });

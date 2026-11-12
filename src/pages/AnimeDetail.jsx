@@ -6,6 +6,7 @@ import AnimeActions from '../components/AnimeActions';
 import { ErrorBox, Loading } from '../components/common/States';
 import { useAuth } from '../auth/AuthContext';
 import { getAnimeById } from '../api/tenrai';
+import { fetchOverrideMap, mergeOverride } from '../api/catalog';
 import { getAnimeStats, getReviews, postReview } from '../api/backend';
 
 const STATUS_TH = { airing: 'กำลังฉาย', finished: 'จบแล้ว', upcoming: 'ยังไม่ฉาย' };
@@ -26,8 +27,8 @@ function AnimeDetail() {
       setStatus('loading');
       setError(null);
       try {
-        const a = await getAnimeById(id);
-        if (!ignore) { setAnime(a); setStatus('success'); }
+        const [a, overrides] = await Promise.all([getAnimeById(id), fetchOverrideMap()]);
+        if (!ignore) { setAnime(mergeOverride(a, overrides.get(Number(a?.id)))); setStatus('success'); }
       } catch (err) {
         if (!ignore) { setError(err); setStatus('error'); }
       }

@@ -36,9 +36,10 @@ export const changePassword = (currentPassword, newPassword, token) =>
   apiFetch('/api/me/password', { method: 'PUT', body: { currentPassword, newPassword }, token });
 
 // ---------- อนิเมะ (guest ดูได้) ----------
-// ข้อมูลอนิเมะที่คนทั่วไปเห็นมาจาก TENRAI (src/api/tenrai.js) ส่วน getAnimeList นี้ใช้เฉพาะหลังบ้านจัดการรายการของทีม
-export async function getAnimeList() {
-  const data = await apiFetch('/api/anime');
+// ข้อมูลอนิเมะมาจาก TENRAI (src/api/tenrai.js) ส่วนนี้คือสิ่งที่ admin แก้ทับ -> [{ id, titleTh, genre, poster, synopsis }]
+// (ช่องที่เป็น null = ใช้ของ TENRAI) ผสมเข้ากับข้อมูลของ TENRAI ด้วย src/api/catalog.js
+export async function getAnimeOverrides() {
+  const data = await apiFetch('/api/anime-overrides');
   return data.items;
 }
 // คะแนนเฉลี่ยจากสมาชิก AniWave ของอนิเมะ 1 เรื่อง (id ของ TENRAI) -> { voteAverage, voteCount }
@@ -64,8 +65,9 @@ export async function getAdminMembers(token) {
 }
 export const setMemberRole = (memberId, role, token) =>
   apiFetch(`/api/admin/members/${memberId}/role`, { method: 'PUT', body: { role }, token });
-export const getAdminAnime = (animeId, token) => apiFetch(`/api/admin/anime/${animeId}`, { token });
-export const createAnime = (fields, token) => apiFetch('/api/admin/anime', { method: 'POST', body: fields, token });
-export const updateAnime = (animeId, fields, token) =>
-  apiFetch(`/api/admin/anime/${animeId}`, { method: 'PUT', body: fields, token });
-export const deleteAnime = (animeId, token) => apiFetch(`/api/admin/anime/${animeId}`, { method: 'DELETE', token });
+// แก้ทับข้อมูลของ TENRAI: fields = { titleTh, genre, poster, synopsis } (ช่องที่ไม่แก้ส่ง null)
+export const putAnimeOverride = (animeId, fields, token) =>
+  apiFetch(`/api/admin/anime-overrides/${animeId}`, { method: 'PUT', body: fields, token });
+// ลบที่แก้ไว้ทั้งหมด = กลับไปใช้ข้อมูลของ TENRAI
+export const deleteAnimeOverride = (animeId, token) =>
+  apiFetch(`/api/admin/anime-overrides/${animeId}`, { method: 'DELETE', token });

@@ -3,8 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import AnimeList from './AnimeList';
 import { getTopAnime } from '../api/tenrai';
+import { getAnimeOverrides } from '../api/backend';
 
 jest.mock('../api/tenrai');
+jest.mock('../api/backend');
+
+beforeEach(() => getAnimeOverrides.mockResolvedValue([]));
 
 const FAKE = [
   { id: 1, title: 'Frieren', titleTh: 'คำอำลาของฟรีเรน', genre: 'Fantasy', year: 2023, rating: 9.3, episodes: 28, poster: null },
@@ -90,4 +94,24 @@ test('TENRAI ล่ม ต้องเห็นข้อความ error แ�
 
   expect(await screen.findByText('Spy x Family')).toBeInTheDocument();
   expect(getTopAnime).toHaveBeenCalledTimes(2);
+});
+
+test('ชื่อไทยที่ admin แก้ทับ ต้องแสดงแทนของ TENRAI และค้นหาด้วยชื่อนั้นได้', async () => {
+  getTopAnime.mockResolvedValue(FAKE);
+  getAnimeOverrides.mockResolvedValue([{ id: 3, titleTh: 'เฟรีเรนภาคพิเศษ', genre: null, poster: null, synopsis: null }]);
+  renderPage();
+
+  const user = userEvent.setup();
+  expect(await screen.findByText('เฟรีเรนภาคพิเศษ')).toBeInTheDocument();
+  await user.type(screen.getByPlaceholderText(/พิมพ์ชื่ออนิเมะ/), 'ภาคพิเศษ');
+  expect(screen.getByText('Frieren Special')).toBeInTheDocument();
+  expect(screen.queryByText('Spy x Family')).not.toBeInTheDocument();
+});
+
+test('ดึงข้อมูลที่ admin แก้ไม่ได้ หน้ารายการต้องยังแสดงข้อมูลจาก TENRAI ตามปกติ', async () => {
+  getTopAnime.mockResolvedValue(FAKE);
+  getAnimeOverrides.mockRejectedValue(new Error('backend ล่ม'));
+  renderPage();
+
+  expect(await screen.findByText('Spy x Family')).toBeInTheDocument();
 });

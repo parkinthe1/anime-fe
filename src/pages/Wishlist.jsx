@@ -3,6 +3,7 @@ import AnimeGrid from '../components/AnimeGrid';
 import { useAuth } from '../auth/AuthContext';
 import { getWishlist } from '../api/backend';
 import { getAnimeById } from '../api/tenrai';
+import { fetchOverrideMap, mergeOverride } from '../api/catalog';
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const GAP_MS = 350;   // TENRAI จำกัดประมาณ 3 request ต่อวินาที
@@ -23,12 +24,16 @@ function Wishlist() {
       setMissing(0);
       try {
         const data = await getWishlist(token);           // { items: [{ id }] }
+        const overrides = await fetchOverrideMap();
         const loaded = [];
         let failed = 0;
         for (let i = 0; i < data.items.length; i++) {
           if (ignore) return;
           if (i > 0) await sleep(GAP_MS);
-          try { loaded.push(await getAnimeById(data.items[i].id)); } catch { failed++; }
+          try {
+            const a = await getAnimeById(data.items[i].id);
+            loaded.push(mergeOverride(a, overrides.get(Number(a.id))));
+          } catch { failed++; }
         }
         if (!ignore) {
           if (data.items.length > 0 && loaded.length === 0) throw new Error('โหลดรายละเอียดอนิเมะจาก TENRAI ไม่สำเร็จ');
