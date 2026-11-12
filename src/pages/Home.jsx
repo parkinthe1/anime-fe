@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import FeaturedCarousel from '../components/FeaturedCarousel';
 import { ErrorBox, Loading, btnPrimary, btnGhost } from '../components/common/States';
-import { getTopAnime } from '../api/jikan';
+import { getAnimeList } from '../api/backend';
 import { useAuth } from '../auth/AuthContext';
 
 // สลับลำดับแบบสุ่มบนสำเนา ไม่แตะ array เดิม
@@ -27,7 +27,7 @@ function Home() {
     async function load() {
       setStatus('loading');
       try {
-        const list = await getTopAnime();
+        const list = await getAnimeList();
         if (!ignore) { setPicks(shuffle(list)); setStatus('success'); }
       } catch (err) {
         if (!ignore) { setError(err); setStatus('error'); }

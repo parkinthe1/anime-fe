@@ -11,7 +11,7 @@ function About() {
         <li>Frontend: React + React Router + Tailwind CSS (Vercel)</li>
         <li>Backend: Go (Render)</li>
         <li>ฐานข้อมูล: Supabase (PostgreSQL)</li>
-        <li>ข้อมูลอนิเมะ: TENRAI API (กำลังจะเชื่อมต่อ)</li>
+        <li>ข้อมูลอนิเมะ: TENRAI API (กำลังจะเชื่อมต่อ) ตอนนี้ใช้ข้อมูลจำลองจาก backend</li>
       </ul>
     </div>
   );

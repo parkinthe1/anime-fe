@@ -5,8 +5,8 @@ import ReviewList from '../components/ReviewList';
 import AnimeActions from '../components/AnimeActions';
 import { ErrorBox, Loading } from '../components/common/States';
 import { useAuth } from '../auth/AuthContext';
-import { getAnimeById } from '../api/jikan';
-import { getReviews, postReview } from '../api/backend';
+import { getAnime, getReviews, postReview } from '../api/backend';
+
 const STATUS_TH = { airing: 'กำลังฉาย', finished: 'จบแล้ว', upcoming: 'ยังไม่ฉาย' };
 
 function AnimeDetail() {
@@ -22,8 +22,9 @@ function AnimeDetail() {
     let ignore = false;
     async function load() {
       setStatus('loading');
+      setError(null);
       try {
-        const a = await getAnimeById(id);
+        const a = await getAnime(id);
         if (!ignore) { setAnime(a); setStatus('success'); }
       } catch (err) {
         if (!ignore) { setError(err); setStatus('error'); }
@@ -44,7 +45,7 @@ function AnimeDetail() {
 
   async function handleReviewSubmit(text) {
     const saved = await postReview(id, text, token);
-    setReviews([{ ...saved, member: { id: member.id, displayName: member.displayName }, score: null }, ...reviews]);
+    setReviews(prev => [{ ...saved, member: { id: member.id, displayName: member.displayName }, score: null }, ...prev]);
   }
 
   if (status === 'loading') return <div className="mx-auto max-w-4xl px-4 py-10"><Loading text="กำลังโหลดรายละเอียด..." /></div>;

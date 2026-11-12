@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import AnimeGrid from '../components/AnimeGrid';
 import { inputClass } from '../components/common/States';
-import { getTopAnime } from '../api/jikan';
+import { getAnimeList } from '../api/backend';
 
 function AnimeList() {
   const [query, setQuery] = useState('');
@@ -21,7 +21,7 @@ function AnimeList() {
       setError(null);
 
       try {
-        const list = await getTopAnime();
+        const list = await getAnimeList();
 
         if (!Array.isArray(list)) {
           throw new Error('ข้อมูลที่ได้ไม่ใช่รายการอนิเมะ');
