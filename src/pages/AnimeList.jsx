@@ -66,18 +66,18 @@ function AnimeList() {
   const chipClass = (active) =>
     'rounded-full border px-3 py-1 text-sm transition ' +
     (active
-      ? 'border-violet-400 bg-violet-500 text-white'
-      : 'border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800');
+      ? 'border-ink bg-ink text-white'
+      : 'border-ink/25 bg-white text-ink hover:border-ink');
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 md:px-6">
+    <div className="mx-auto max-w-5xl px-4 py-8 md:px-8 md:py-10">
       <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-white">
+          <h1 className="text-2xl font-medium text-ink">
             อนิเมะทั้งหมด
           </h1>
 
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-mute">
             {status === 'success'
               ? `พบ ${shown.length} จาก ${items.length} เรื่อง`
               : 'กำลังเตรียมรายการ'}

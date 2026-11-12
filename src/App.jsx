@@ -23,8 +23,10 @@ function App() {
   return (
     // AuthProvider ครอบทั้งแอป ทุกหน้าข้างในเรียก useAuth() ได้
     <AuthProvider>
-      <div className="flex min-h-screen flex-col">
+      {/* จอใหญ่: เมนูอยู่แถบด้านข้างซ้าย เนื้อหากับ Footer อยู่คอลัมน์ขวา / มือถือ: เมนูอยู่ด้านบน */}
+      <div className="min-h-screen lg:flex">
         <Navbar />
+        <div className="flex min-w-0 flex-1 flex-col">
         <main className="flex-1">
           <Routes>
             {/* guest: ดูได้ทุกคน */}
@@ -51,6 +53,7 @@ function App() {
           </Routes>
         </main>
         <Footer />
+        </div>
       </div>
     </AuthProvider>
   );

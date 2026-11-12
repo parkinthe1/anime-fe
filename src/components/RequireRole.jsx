@@ -13,9 +13,9 @@ function RequireRole({ role, children }) {
   if (member?.role !== role) {
     return (
       <div className="px-4 py-24 text-center">
-        <p className="text-5xl font-semibold text-slate-600">403</p>
-        <p className="mt-2 text-slate-400">หน้านี้สำหรับ {role} เท่านั้น บัญชีของคุณเป็น {member?.role ?? 'member'}</p>
-        <Link to="/" className="mt-4 inline-block text-sm text-violet-400 hover:underline">กลับหน้าแรก</Link>
+        <p className="text-5xl font-semibold text-mute/70">403</p>
+        <p className="mt-2 text-mute">หน้านี้สำหรับ {role} เท่านั้น บัญชีของคุณเป็น {member?.role ?? 'member'}</p>
+        <Link to="/" className="mt-4 inline-block text-sm text-sea hover:underline">กลับหน้าแรก</Link>
       </div>
     );
   }

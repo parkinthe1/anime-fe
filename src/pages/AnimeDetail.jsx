@@ -61,56 +61,61 @@ function AnimeDetail() {
     setReviews(prev => [{ ...saved, member: { id: member.id, displayName: member.displayName }, score: null }, ...prev]);
   }
 
-  if (status === 'loading') return <div className="mx-auto max-w-4xl px-4 py-10"><Loading text="กำลังโหลดรายละเอียด..." /></div>;
+  if (status === 'loading') return <div className="mx-auto max-w-5xl px-4 py-10"><Loading text="กำลังโหลดรายละเอียด..." /></div>;
 
   if (status === 'error') {
     return (
       <div className="mx-auto max-w-xl px-4 py-16">
         <ErrorBox error={error} onRetry={error?.status === 404 ? undefined : () => setReloadKey(k => k + 1)} />
-        <Link to="/anime" className="mt-6 block text-center text-sm text-violet-400 hover:underline">กลับไปหน้าอนิเมะทั้งหมด</Link>
+        <Link to="/anime" className="mt-6 block text-center text-sm font-medium text-sea underline">กลับไปหน้าอนิเมะทั้งหมด</Link>
       </div>
     );
   }
 
+  const chip = 'rounded-full bg-foam px-3 py-1 text-sm text-ink';
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 md:px-6">
-      <Link to="/anime" className="text-sm text-slate-400 hover:text-violet-300">← กลับไปหน้าอนิเมะทั้งหมด</Link>
+    <div className="mx-auto max-w-5xl px-4 py-8 md:px-8 md:py-10">
+      <Link to="/anime" className="text-sm text-mute hover:text-sea">← กลับไปหน้าอนิเมะทั้งหมด</Link>
 
-      <div className="mt-4 flex flex-col gap-8 md:flex-row">
-        {anime.poster ? (
-          <img src={anime.poster} alt={`โปสเตอร์ ${anime.title}`} className="w-48 shrink-0 self-start rounded-xl border border-slate-800" />
-        ) : (
-          <div className="grid aspect-[2/3] w-48 shrink-0 place-items-center rounded-xl bg-slate-800 text-5xl">🌊</div>
-        )}
-
-        <div className="flex-1">
-          <h1 className="text-2xl font-semibold text-white md:text-3xl">{anime.title}</h1>
-          {anime.titleTh && <p className="mt-1 text-slate-400">{anime.titleTh}</p>}
-          <p className="mt-2 text-sm text-slate-400">
-            {anime.year ?? 'ไม่ระบุปี'}
-            {anime.genre && ` | ${anime.genre}`}
-            {anime.episodes != null && ` | ${anime.episodes} ตอน`}
-            {anime.status && ` | ${STATUS_TH[anime.status] ?? anime.status}`}
-            {anime.rating != null && ` | ⭐ ${anime.rating}`}
-          </p>
-          {stats?.voteCount > 0 && (
-            <p className="mt-1 text-xs text-slate-500">คะแนนจากสมาชิก AniWave ⭐ {stats.voteAverage} ({stats.voteCount} โหวต)</p>
+      <div className="mt-5 grid gap-8 md:grid-cols-[14rem_minmax(0,1fr)]">
+        <div className="md:sticky md:top-8 md:self-start">
+          {anime.poster ? (
+            <img src={anime.poster} alt={`โปสเตอร์ ${anime.title}`} className="w-full max-w-[14rem] rounded-lg border-2 border-ink shadow-panel" />
+          ) : (
+            <div className="grid aspect-[2/3] w-full max-w-[14rem] place-items-center rounded-lg border-2 border-ink bg-foam text-5xl shadow-panel">🌊</div>
           )}
-          <p className="mt-4 leading-relaxed text-slate-300">{anime.synopsis || 'ยังไม่มีเรื่องย่อ'}</p>
+        </div>
+
+        <div className="min-w-0">
+          <h1 className="text-3xl font-medium leading-tight md:text-4xl">{anime.title}</h1>
+          {anime.titleTh && <p className="mt-1 text-lg text-mute">{anime.titleTh}</p>}
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className={chip}>{anime.year ?? 'ไม่ระบุปี'}</span>
+            {anime.genre && <span className={chip}>{anime.genre}</span>}
+            {anime.episodes != null && <span className={chip}>{anime.episodes} ตอน</span>}
+            {anime.status && <span className={chip}>{STATUS_TH[anime.status] ?? anime.status}</span>}
+            {anime.rating != null && <span className="rounded-full bg-coral px-3 py-1 text-sm font-medium text-ink">⭐ {anime.rating}</span>}
+          </div>
+          {stats?.voteCount > 0 && (
+            <p className="mt-2 text-sm text-mute">คะแนนจากสมาชิก AniWave ⭐ {stats.voteAverage} ({stats.voteCount} โหวต)</p>
+          )}
+
+          <p className="mt-5 max-w-prose leading-relaxed text-ink/85">{anime.synopsis || 'ยังไม่มีเรื่องย่อ'}</p>
 
           <AnimeActions animeId={anime.id} />
 
-          <div className="mt-8">
-            <h2 className="mb-3 text-lg font-semibold text-white">รีวิวจากสมาชิก ({reviews.length})</h2>
+          <div className="mt-10 border-t border-line pt-6">
+            <h2 className="mb-4 text-lg font-medium">รีวิวจากสมาชิก ({reviews.length})</h2>
             <ReviewList items={reviews} />
           </div>
 
-          <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-5">
+          <div className="mt-6 rounded-lg border-2 border-ink bg-white p-5 shadow-panel">
             {isLoggedIn ? (
               <ReviewForm key={anime.id} animeTitle={anime.title} onSubmit={handleReviewSubmit} />
             ) : (
-              <p className="text-sm text-slate-400">
-                <Link to="/login" className="text-violet-400 hover:underline">เข้าสู่ระบบ</Link> เพื่อเขียนรีวิว
+              <p className="text-sm text-mute">
+                <Link to="/login" className="font-medium text-sea underline">เข้าสู่ระบบ</Link> เพื่อเขียนรีวิว
               </p>
             )}
           </div>

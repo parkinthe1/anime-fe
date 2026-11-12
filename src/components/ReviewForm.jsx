@@ -8,7 +8,7 @@ function ReviewForm({ animeTitle, onSubmit }) {
   const [status, setStatus] = useState('typing');   // 'typing' | 'submitting' | 'success'
 
   if (status === 'success') {
-    return <p className="rounded-lg bg-violet-500/10 p-4 text-violet-300">ขอบคุณสำหรับรีวิว {animeTitle} 🎉</p>;
+    return <p className="rounded-lg bg-foam p-4 text-sea">ขอบคุณสำหรับรีวิว {animeTitle} 🎉</p>;
   }
 
   async function handleSubmit(e) {
@@ -26,7 +26,7 @@ function ReviewForm({ animeTitle, onSubmit }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <h3 className="font-medium text-white">เขียนรีวิว {animeTitle}</h3>
+      <h3 className="font-medium text-ink">เขียนรีวิว {animeTitle}</h3>
       <textarea value={review} onChange={(e) => setReview(e.target.value)}
                 disabled={status === 'submitting'} rows={3}
                 placeholder="ดูแล้วรู้สึกอย่างไร (อย่างน้อย 10 ตัวอักษร)"
@@ -35,7 +35,7 @@ function ReviewForm({ animeTitle, onSubmit }) {
         <button type="submit" disabled={review.trim().length === 0 || status === 'submitting'} className={btnPrimary}>
           {status === 'submitting' ? 'กำลังส่ง...' : 'ส่งรีวิว'}
         </button>
-        {error && <p className="text-sm text-red-400">{error.message}</p>}
+        {error && <p className="text-sm text-red-700">{error.message}</p>}
       </div>
     </form>
   );

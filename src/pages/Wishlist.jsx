@@ -49,9 +49,9 @@ function Wishlist() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 md:px-6">
-      <h1 className="text-2xl font-semibold text-white">รายการที่อยากดูของ {member?.displayName}</h1>
-      <p className="mb-6 text-sm text-slate-500">กดปุ่มหัวใจในหน้าอนิเมะเพื่อเพิ่มเรื่องเข้ามาที่นี่</p>
-      {missing > 0 && <p role="status" className="mb-4 text-sm text-amber-400">โหลดไม่ได้ {missing} เรื่อง (TENRAI ไม่ตอบ) ลองรีเฟรชอีกครั้ง</p>}
+      <h1 className="text-2xl font-medium text-ink">รายการที่อยากดูของ {member?.displayName}</h1>
+      <p className="mb-6 text-sm text-mute">กดปุ่มหัวใจในหน้าอนิเมะเพื่อเพิ่มเรื่องเข้ามาที่นี่</p>
+      {missing > 0 && <p role="status" className="mb-4 text-sm text-amber-700">โหลดไม่ได้ {missing} เรื่อง (TENRAI ไม่ตอบ) ลองรีเฟรชอีกครั้ง</p>}
       <AnimeGrid items={items} status={status} error={error}
                  emptyText="ยังไม่มีอนิเมะในรายการที่อยากดู"
                  onRetry={() => setReloadKey(k => k + 1)} />

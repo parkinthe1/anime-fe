@@ -22,8 +22,8 @@ function AnimeActions({ animeId }) {
 
   if (!isLoggedIn) {
     return (
-      <p className="mt-4 text-sm text-slate-400">
-        <Link to="/login" className="text-violet-400 hover:underline">เข้าสู่ระบบ</Link> เพื่อให้คะแนนและเพิ่มเข้ารายการที่อยากดู
+      <p className="mt-4 text-sm text-mute">
+        <Link to="/login" className="font-medium text-sea underline">เข้าสู่ระบบ</Link> เพื่อให้คะแนนและเพิ่มเข้ารายการที่อยากดู
       </p>
     );
   }
@@ -59,23 +59,23 @@ function AnimeActions({ animeId }) {
   return (
     <div className="mt-4 space-y-3">
       <div className="flex flex-wrap items-center gap-1">
-        <span className="mr-2 text-sm text-slate-400">ให้คะแนน</span>
+        <span className="mr-2 text-sm text-mute">ให้คะแนน</span>
         {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
           <button key={n} onClick={() => handleVote(n)} aria-label={`ให้ ${n} คะแนน`}
-                  className={'h-8 w-8 rounded-lg border text-sm ' +
-                    (myScore === n ? 'border-violet-400 bg-violet-500 text-white' : 'border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800')}>
+                  className={'h-9 w-9 rounded-full border text-sm transition ' +
+                    (myScore === n ? 'border-ink bg-coral font-medium text-ink' : 'border-ink/25 bg-white text-ink hover:border-ink hover:bg-foam')}>
             {n}
           </button>
         ))}
       </div>
 
       <button onClick={handleWishlist}
-              className={'rounded-lg border px-4 py-2 text-sm ' +
-                (inWishlist ? 'border-violet-400 bg-violet-500/10 text-violet-300' : 'border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800')}>
+              className={'rounded-full border px-5 py-2 text-sm font-medium transition ' +
+                (inWishlist ? 'border-ink bg-foam text-ink' : 'border-ink/30 bg-white text-ink hover:border-ink hover:bg-foam')}>
         {inWishlist ? '❤️ อยู่ในรายการที่อยากดูแล้ว' : '🤍 เพิ่มเข้ารายการที่อยากดู'}
       </button>
 
-      {message && <p role="status" className="text-sm text-slate-400">{message}</p>}
+      {message && <p role="status" className="text-sm text-mute">{message}</p>}
     </div>
   );
 }

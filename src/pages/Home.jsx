@@ -16,6 +16,30 @@ function shuffle(list) {
   return copy;
 }
 
+// กรอบรูป "เรื่องเด่น" ใช้เรื่องแรกของรายการที่สุ่มไว้ กดสุ่มใหม่แล้วเปลี่ยนเรื่อง
+function Spotlight({ anime, status }) {
+  if (status === 'error') return null;
+  const frame = 'block w-60 max-w-full -rotate-2 rounded-lg border-2 border-ink bg-white p-2 shadow-panel md:justify-self-center';
+  if (!anime) {
+    return (
+      <div aria-hidden="true" className={frame + (status === 'loading' ? ' animate-pulse' : '')}>
+        <div className="aspect-[2/3] rounded-md bg-foam" />
+        <div className="mt-2 h-5" />
+      </div>
+    );
+  }
+  return (
+    <Link to={`/anime/${anime.id}`} className={frame + ' group'}>
+      {anime.poster ? (
+        <img src={anime.poster} alt={`โปสเตอร์ ${anime.title}`} className="aspect-[2/3] w-full rounded-md object-cover" />
+      ) : (
+        <div className="grid aspect-[2/3] w-full place-items-center rounded-md bg-foam text-5xl">🌊</div>
+      )}
+      <p className="mt-2 truncate px-1 text-sm font-medium group-hover:text-sea">{anime.title}</p>
+    </Link>
+  );
+}
+
 function Home() {
   const { isLoggedIn } = useAuth();
   const [picks, setPicks] = useState([]);
@@ -40,29 +64,31 @@ function Home() {
   }, [reloadKey]);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 md:px-6">
-      <section className="py-14 md:py-20">
-        <p className="text-sm font-medium text-violet-400">ยินดีต้อนรับสู่ AniWave</p>
-        <h1 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight text-white md:text-5xl">
-          อนิเมะที่น่าดู รวมไว้ที่เดียว
-        </h1>
-        <p className="mt-4 max-w-xl text-slate-400">
-          ค้นหาอนิเมะ ให้คะแนน เขียนรีวิว และเก็บเรื่องที่อยากดูไว้ในบัญชีของคุณ
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link to="/anime" className={btnPrimary}>ดูอนิเมะทั้งหมด</Link>
-          {!isLoggedIn && <Link to="/register" className={btnGhost}>สมัครสมาชิก</Link>}
+    <div className="mx-auto max-w-5xl px-4 md:px-8">
+      <section className="grid items-center gap-10 py-12 md:grid-cols-[minmax(0,1fr)_15rem] md:py-16">
+        <div>
+          <h1 className="max-w-xl text-4xl font-medium leading-tight tracking-tight md:text-5xl">
+            อนิเมะที่น่าดู รวมไว้ที่เดียว
+          </h1>
+          <p className="mt-4 max-w-md text-mute">
+            ค้นหาอนิเมะ ให้คะแนน เขียนรีวิว และเก็บเรื่องที่อยากดูไว้ในบัญชีของคุณ
+          </p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link to="/anime" className={btnPrimary}>ดูอนิเมะทั้งหมด</Link>
+            {!isLoggedIn && <Link to="/register" className={btnGhost}>สมัครสมาชิก</Link>}
+          </div>
         </div>
+        <Spotlight anime={picks[0]} status={status} />
       </section>
 
-      <section>
-        <div className="mb-4 flex items-end justify-between">
+      <section className="border-t border-line pt-8">
+        <div className="mb-5 flex items-end justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-white">อนิเมะแนะนำ</h2>
-            <p className="text-sm text-slate-500">สุ่มลำดับใหม่ทุกครั้งที่เปิดหน้า</p>
+            <h2 className="text-xl font-medium">อนิเมะแนะนำ</h2>
+            <p className="text-sm text-mute">สุ่มลำดับใหม่ทุกครั้งที่เปิดหน้า</p>
           </div>
           {status === 'success' && (
-            <button onClick={() => setPicks(shuffle(picks))} className="text-sm text-violet-400 hover:underline">สุ่มใหม่</button>
+            <button onClick={() => setPicks(shuffle(picks))} className="text-sm font-medium text-sea hover:underline">สุ่มใหม่</button>
           )}
         </div>
         {status === 'loading' && <Loading />}

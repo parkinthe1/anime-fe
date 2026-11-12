@@ -53,18 +53,18 @@ function Profile() {
     }
   }
 
-  const msgClass = (m) => 'text-sm ' + (m.ok ? 'text-emerald-400' : 'text-red-400');
-  const card = 'rounded-xl border border-slate-800 bg-slate-900 p-5';
+  const msgClass = (m) => 'text-sm ' + (m.ok ? 'text-emerald-700' : 'text-red-700');
+  const card = 'rounded-lg border border-line bg-white p-5';
 
   return (
     <div className="mx-auto max-w-xl px-4 py-10 md:px-6">
-      <h1 className="text-2xl font-semibold text-white">โปรไฟล์ของฉัน</h1>
-      <p className="mt-1 text-sm text-slate-400">
-        {member?.email} <span className="ml-2 rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-300">{member?.role}</span>
+      <h1 className="text-2xl font-medium text-ink">โปรไฟล์ของฉัน</h1>
+      <p className="mt-1 text-sm text-mute">
+        {member?.email} <span className="ml-2 rounded-full bg-foam px-2 py-0.5 text-xs text-ink/80">{member?.role}</span>
       </p>
 
       <form onSubmit={handleName} className={card + ' mt-6 space-y-3'}>
-        <h2 className="font-medium text-white">ชื่อที่แสดง</h2>
+        <h2 className="font-medium text-ink">ชื่อที่แสดง</h2>
         <input value={displayName} onChange={(e) => setDisplayName(e.target.value)}
                aria-label="ชื่อที่แสดง" required className={inputClass} />
         <div className="flex items-center gap-3">
@@ -76,7 +76,7 @@ function Profile() {
       </form>
 
       <form onSubmit={handlePassword} className={card + ' mt-6 space-y-3'}>
-        <h2 className="font-medium text-white">เปลี่ยนรหัสผ่าน</h2>
+        <h2 className="font-medium text-ink">เปลี่ยนรหัสผ่าน</h2>
         <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)}
                placeholder="รหัสผ่านปัจจุบัน" aria-label="รหัสผ่านปัจจุบัน" required className={inputClass} />
         <input type="password" value={next} onChange={(e) => setNext(e.target.value)}

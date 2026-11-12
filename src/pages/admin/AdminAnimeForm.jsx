@@ -90,13 +90,13 @@ function AdminAnimeForm() {
   if (status === 'loading') return <Loading />;
   if (status === 'error') return <ErrorBox error={loadError} />;
 
-  const label = 'block text-sm text-slate-300';
-  const hint = 'mt-1 text-xs text-slate-500';
+  const label = 'block text-sm text-ink/80';
+  const hint = 'mt-1 text-xs text-mute';
   return (
     <div className="max-w-2xl">
-      <Link to="/admin/anime" className="text-sm text-slate-400 hover:text-violet-300">← กลับไปรายการอนิเมะ</Link>
-      <h2 className="mb-1 mt-2 text-lg font-semibold text-white">แก้ไขข้อมูล: {original.title} <span className="text-slate-500">#{id}</span></h2>
-      <p className="mb-4 text-sm text-slate-400">
+      <Link to="/admin/anime" className="text-sm text-mute hover:text-sea">← กลับไปรายการอนิเมะ</Link>
+      <h2 className="mb-1 mt-2 text-lg font-medium text-ink">แก้ไขข้อมูล: {original.title} <span className="text-mute">#{id}</span></h2>
+      <p className="mb-4 text-sm text-mute">
         {original.year ?? '-'} · {original.episodes ?? '-'} ตอน · {STATUS_TH[original.status] ?? original.status} (ส่วนนี้มาจาก TENRAI แก้ไม่ได้)
         <br />เว้นช่องไหนว่างไว้ = ใช้ข้อมูลของ TENRAI ช่องนั้น
       </p>
@@ -116,13 +116,13 @@ function AdminAnimeForm() {
           <textarea value={form.synopsis} onChange={set('synopsis')} rows={5} className={inputClass + ' mt-1'} />
         </label>
         {original.synopsis && (
-          <details className="rounded-lg border border-slate-800 bg-slate-900 p-3 text-sm text-slate-400">
-            <summary className="cursor-pointer text-slate-300">เรื่องย่อเดิมจาก TENRAI</summary>
+          <details className="rounded-lg border border-line bg-white p-3 text-sm text-mute">
+            <summary className="cursor-pointer text-ink/80">เรื่องย่อเดิมจาก TENRAI</summary>
             <p className="mt-2 whitespace-pre-line">{original.synopsis}</p>
           </details>
         )}
 
-        {saveError && <p role="alert" className="text-sm text-red-400">{saveError}</p>}
+        {saveError && <p role="alert" className="text-sm text-red-700">{saveError}</p>}
 
         <div className="flex items-center gap-2">
           <button type="submit" disabled={saving} className={btnPrimary}>
