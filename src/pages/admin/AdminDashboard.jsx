@@ -65,7 +65,7 @@ function AdminDashboard() {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-        <StatCard label="อนิเมะ" value={stats.anime} to="/admin/anime" />
+        <StatCard label="อนิเมะที่แก้ข้อมูล" value={stats.overrides} to="/admin/anime" />
         <StatCard label="สมาชิก" value={stats.members} to="/admin/members" />
         <StatCard label="admin" value={stats.admins} />
         <StatCard label="โหวต" value={stats.votes} />

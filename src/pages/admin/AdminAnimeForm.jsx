@@ -1,119 +1,148 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
-import { getAdminStats } from '../../api/backend';
 import { getAnimeById } from '../../api/tenrai';
-import { ErrorBox, Loading } from '../../components/common/States';
+import { getAnimeOverrides, putAnimeOverride, deleteAnimeOverride } from '../../api/backend';
+import { ErrorBox, Loading, ConfirmBox, btnPrimary, btnDanger, btnGhost, inputClass } from '../../components/common/States';
 
-const dateTH = (iso) => new Date(iso).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+const STATUS_TH = { airing: 'กำลังฉาย', finished: 'จบแล้ว', upcoming: 'ยังไม่ฉาย' };
+const EMPTY = { titleTh: '', genre: '', poster: '', synopsis: '' };
 
-function StatCard({ label, value, to }) {
-  const body = (
-    <>
-      <p className="text-sm text-slate-400">{label}</p>
-      <p className="mt-1 text-3xl font-semibold text-white">{value}</p>
-    </>
-  );
-  const cls = 'rounded-xl border border-slate-800 bg-slate-900 p-4';
-  return to ? <Link to={to} className={cls + ' block hover:border-violet-500/60'}>{body}</Link> : <div className={cls}>{body}</div>;
-}
-
-function AdminDashboard() {
+// แก้ทับข้อมูลของ TENRAI สำหรับอนิเมะ 1 เรื่อง (id ใน URL = id ของ TENRAI) เว้นช่องไหนว่างไว้ = ใช้ของ TENRAI ช่องนั้น
+// ไม่มีการเพิ่ม/ลบอนิเมะ เพราะรายการเรื่องมาจาก TENRAI
+function AdminAnimeForm() {
+  const { id } = useParams();
   const { token } = useAuth();
-  const [stats, setStats] = useState(null);
-  const [status, setStatus] = useState('loading');
-  const [error, setError] = useState(null);
-  const [titles, setTitles] = useState({});   // id -> ชื่อ (ดึงจาก TENRAI เพราะ backend เก็บแค่ id)
-  const [reloadKey, setReloadKey] = useState(0);
+  const navigate = useNavigate();
+
+  const [original, setOriginal] = useState(null);       // ข้อมูลเดิมจาก TENRAI
+  const [hasOverride, setHasOverride] = useState(false);
+  const [form, setForm] = useState(EMPTY);
+  const [status, setStatus] = useState('loading');      // loading | ready | error
+  const [loadError, setLoadError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   useEffect(() => {
     let ignore = false;
     async function load() {
       setStatus('loading');
       try {
-        const data = await getAdminStats(token);
-        if (!ignore) { setStats(data); setStatus('success'); }
+        // ดึงที่แก้ไว้แบบเข้มงวด: ถ้าดึงไม่ได้ต้องขึ้น error ไม่งั้นฟอร์มว่างจะทำให้เผลอเขียนทับของเดิม
+        const [a, list] = await Promise.all([getAnimeById(id), getAnimeOverrides()]);
+        const ov = list.find(o => Number(o.id) === Number(a.id));
+        if (!ignore) {
+          setOriginal(a);
+          setHasOverride(Boolean(ov));
+          setForm({ titleTh: ov?.titleTh ?? '', genre: ov?.genre ?? '', poster: ov?.poster ?? '', synopsis: ov?.synopsis ?? '' });
+          setStatus('ready');
+        }
       } catch (err) {
-        if (!ignore) { setError(err); setStatus('error'); }
+        if (!ignore) { setLoadError(err); setStatus('error'); }
       }
     }
     load();
     return () => { ignore = true; };
-  }, [token, reloadKey]);
+  }, [id]);
 
-  useEffect(() => {
-    if (!stats) return;
-    let ignore = false;
-    (async () => {
-      for (let i = 0; i < stats.topVoted.length; i++) {
-        const a = stats.topVoted[i];
-        if (a.title) continue;
-        if (i > 0) await new Promise(r => setTimeout(r, 350));   // กัน rate limit ของ TENRAI
-        try {
-          const detail = await getAnimeById(a.id);
-          if (!ignore) setTitles(t => ({ ...t, [a.id]: detail.title }));
-        } catch { /* ไม่ได้ชื่อก็แสดงเป็นเลข id */ }
+  const set = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const fields = {
+      titleTh: form.titleTh.trim() || null,
+      genre: form.genre.trim() || null,
+      poster: form.poster.trim() || null,
+      synopsis: form.synopsis.trim() || null,
+    };
+    if (fields.poster && !/^https?:\/\//i.test(fields.poster)) {
+      setSaveError('ลิงก์โปสเตอร์ต้องขึ้นต้นด้วย http:// หรือ https://');
+      return;
+    }
+    setSaving(true);
+    setSaveError(null);
+    try {
+      if (Object.values(fields).every(v => v === null)) {
+        if (hasOverride) await deleteAnimeOverride(id, token);   // ล้างทุกช่อง = กลับไปใช้ของ TENRAI ทั้งหมด
+      } else {
+        await putAnimeOverride(id, fields, token);
       }
-    })();
-    return () => { ignore = true; };
-  }, [stats]);
+      navigate('/admin/anime');
+    } catch (err) {
+      setSaveError(err.message);
+      setSaving(false);
+    }
+  }
+
+  async function handleReset() {
+    setSaving(true);
+    try {
+      await deleteAnimeOverride(id, token);
+      navigate('/admin/anime');
+    } catch (err) {
+      setSaveError(err.message);
+      setConfirmReset(false);
+      setSaving(false);
+    }
+  }
 
   if (status === 'loading') return <Loading />;
-  if (status === 'error') return <ErrorBox error={error} onRetry={() => setReloadKey(k => k + 1)} />;
+  if (status === 'error') return <ErrorBox error={loadError} />;
 
-  const box = 'rounded-xl border border-slate-800 bg-slate-900 p-4';
+  const label = 'block text-sm text-slate-300';
+  const hint = 'mt-1 text-xs text-slate-500';
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-        <StatCard label="อนิเมะที่แก้ข้อมูล" value={stats.overrides} to="/admin/anime" />
-        <StatCard label="สมาชิก" value={stats.members} to="/admin/members" />
-        <StatCard label="admin" value={stats.admins} />
-        <StatCard label="โหวต" value={stats.votes} />
-        <StatCard label="อยากดู" value={stats.wishlistItems} />
-      </div>
+    <div className="max-w-2xl">
+      <Link to="/admin/anime" className="text-sm text-slate-400 hover:text-violet-300">← กลับไปรายการอนิเมะ</Link>
+      <h2 className="mb-1 mt-2 text-lg font-semibold text-white">แก้ไขข้อมูล: {original.title} <span className="text-slate-500">#{id}</span></h2>
+      <p className="mb-4 text-sm text-slate-400">
+        {original.year ?? '-'} · {original.episodes ?? '-'} ตอน · {STATUS_TH[original.status] ?? original.status} (ส่วนนี้มาจาก TENRAI แก้ไม่ได้)
+        <br />เว้นช่องไหนว่างไว้ = ใช้ข้อมูลของ TENRAI ช่องนั้น
+      </p>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <section className={box}>
-          <h2 className="font-semibold text-white">อนิเมะที่สมาชิกให้คะแนนสูงสุด</h2>
-          {stats.topVoted.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-500">ยังไม่มีใครโหวต</p>
-          ) : (
-            <ol className="mt-3 divide-y divide-slate-800">
-              {stats.topVoted.map((a, i) => (
-                <li key={a.id} className="flex items-center gap-3 py-2">
-                  <span className="w-5 text-sm text-slate-500">{i + 1}</span>
-                  <div className="min-w-0 flex-1">
-                    <Link to={`/anime/${a.id}`} className="block truncate text-sm font-medium text-white hover:text-violet-300">{a.title ?? titles[a.id] ?? `อนิเมะ #${a.id}`}</Link>
-                    {a.titleTh && <p className="truncate text-xs text-slate-400">{a.titleTh}</p>}
-                  </div>
-                  <span className="text-sm text-slate-300">⭐ {a.voteAverage} <span className="text-xs text-slate-500">({a.voteCount})</span></span>
-                </li>
-              ))}
-            </ol>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <label className={label}>ชื่อไทย
+          <input value={form.titleTh} onChange={set('titleTh')} className={inputClass + ' mt-1'} />
+        </label>
+        <label className={label}>แนว
+          <input value={form.genre} onChange={set('genre')} placeholder={original.genre ?? ''} className={inputClass + ' mt-1'} />
+          {original.genre && <span className={hint + ' block'}>TENRAI: {original.genre}</span>}
+        </label>
+        <label className={label}>ลิงก์โปสเตอร์
+          <input value={form.poster} onChange={set('poster')} placeholder="https://..." className={inputClass + ' mt-1'} />
+        </label>
+        <label className={label}>เรื่องย่อ
+          <textarea value={form.synopsis} onChange={set('synopsis')} rows={5} className={inputClass + ' mt-1'} />
+        </label>
+        {original.synopsis && (
+          <details className="rounded-lg border border-slate-800 bg-slate-900 p-3 text-sm text-slate-400">
+            <summary className="cursor-pointer text-slate-300">เรื่องย่อเดิมจาก TENRAI</summary>
+            <p className="mt-2 whitespace-pre-line">{original.synopsis}</p>
+          </details>
+        )}
+
+        {saveError && <p role="alert" className="text-sm text-red-400">{saveError}</p>}
+
+        <div className="flex items-center gap-2">
+          <button type="submit" disabled={saving} className={btnPrimary}>
+            {saving ? 'กำลังบันทึก...' : 'บันทึก'}
+          </button>
+          <Link to="/admin/anime" className={btnGhost}>ยกเลิก</Link>
+          {hasOverride && (
+            <button type="button" onClick={() => setConfirmReset(true)} disabled={saving} className={btnDanger + ' ml-auto'}>
+              กลับไปใช้ข้อมูลของ TENRAI
+            </button>
           )}
-        </section>
+        </div>
+      </form>
 
-        <section className={box}>
-          <h2 className="font-semibold text-white">สมาชิกใหม่ล่าสุด</h2>
-          <ul className="mt-3 divide-y divide-slate-800">
-            {stats.newestMembers.map(m => (
-              <li key={m.id} className="flex items-center justify-between py-2 text-sm">
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-white">{m.displayName}</p>
-                  <p className="truncate text-xs text-slate-400">{m.email}</p>
-                </div>
-                <div className="text-right text-xs text-slate-500">
-                  {m.role === 'admin' && <span className="mr-2 rounded-full bg-violet-500/20 px-2 py-0.5 text-violet-300">admin</span>}
-                  {dateTH(m.createdAt)}
-                </div>
-              </li>
-            ))}
-          </ul>
-          <Link to="/admin/members" className="mt-3 inline-block text-sm text-violet-400 hover:underline">ดูสมาชิกทั้งหมด</Link>
-        </section>
-      </div>
+      <ConfirmBox open={confirmReset} busy={saving} title={`ล้างข้อมูลที่แก้ของ ${original.title} ?`} confirmText="ล้าง"
+                  onConfirm={handleReset} onCancel={() => setConfirmReset(false)}>
+        <p>ชื่อไทย แนว โปสเตอร์ และเรื่องย่อที่แก้ไว้จะหายไป หน้าเว็บจะกลับไปแสดงข้อมูลของ TENRAI (รีวิวและคะแนนของสมาชิกไม่ถูกลบ)</p>
+      </ConfirmBox>
     </div>
   );
 }
 
-export default AdminDashboard;
+export default AdminAnimeForm;
