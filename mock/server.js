@@ -19,6 +19,8 @@ let nextMemberId = 3, nextReviewId = 1, nextAnimeId = 100;
 
 const publicMember = (m) => ({ id: m.id, email: m.email, displayName: m.displayName, role: m.role, createdAt: m.createdAt });
 const fail = (res, status, error) => res.status(status).json({ error });
+// id ของอนิเมะที่สมาชิกให้คะแนน/รีวิว/เก็บ wishlist คือ mal_id ของ TENRAI backend ไม่มีข้อมูลเรื่องนั้น จึงตรวจแค่ว่าเป็นเลขจำนวนเต็มบวก
+const validAnimeId = (v) => Number.isInteger(Number(v)) && Number(v) > 0;
 
 // ---------- middleware ----------
 function login(req, res, next) {
@@ -85,6 +87,11 @@ app.get('/api/anime/:id', (req, res) => {
   res.json({ ...a, ...voteStats(a.id) });
 });
 
+app.get('/api/anime/:id/stats', (req, res) => {
+  if (!validAnimeId(req.params.id)) return fail(res, 400, 'id ไม่ถูกต้อง');
+  res.json(voteStats(Number(req.params.id)));
+});
+
 app.get('/api/anime/:id/reviews', (req, res) => {
   const items = reviews
     .filter(r => r.animeId === Number(req.params.id))
@@ -98,7 +105,7 @@ app.get('/api/anime/:id/reviews', (req, res) => {
 
 app.post('/api/anime/:id/reviews', login, (req, res) => {
   const animeId = Number(req.params.id);
-  if (!anime.some(a => a.id === animeId)) return fail(res, 404, 'ไม่พบอนิเมะเรื่องนี้');
+  if (!validAnimeId(animeId)) return fail(res, 400, 'id ไม่ถูกต้อง');
   const text = String(req.body?.text ?? '').trim();
   if (text.length < 10) return fail(res, 400, 'รีวิวสั้นเกินไป (อย่างน้อย 10 ตัวอักษร)');
   const r = { id: nextReviewId++, animeId, memberId: req.member.id, text, createdAt: new Date().toISOString() };
@@ -109,7 +116,7 @@ app.post('/api/anime/:id/reviews', login, (req, res) => {
 app.put('/api/anime/:id/vote', login, (req, res) => {
   const animeId = Number(req.params.id);
   const score = Number(req.body?.score);
-  if (!anime.some(a => a.id === animeId)) return fail(res, 404, 'ไม่พบอนิเมะเรื่องนี้');
+  if (!validAnimeId(animeId)) return fail(res, 400, 'id ไม่ถูกต้อง');
   if (!Number.isInteger(score) || score < 1 || score > 10) return fail(res, 400, 'คะแนนต้องเป็นเลข 1 ถึง 10');
   votes.set(`${animeId}:${req.member.id}`, score);
   res.json({ score, ...voteStats(animeId) });
@@ -117,10 +124,10 @@ app.put('/api/anime/:id/vote', login, (req, res) => {
 
 // ---------- wishlist ----------
 const listOf = (memberId) => { if (!wishlist.has(memberId)) wishlist.set(memberId, new Set()); return wishlist.get(memberId); };
-app.get('/api/me/wishlist', login, (req, res) => res.json({ items: anime.filter(a => listOf(req.member.id).has(a.id)) }));
+app.get('/api/me/wishlist', login, (req, res) => res.json({ items: [...listOf(req.member.id)].map(id => ({ id })) }));   // มีแค่ id ชื่อ/โปสเตอร์ FE ไปดึงจาก TENRAI
 app.put('/api/me/wishlist/:id', login, (req, res) => {
   const id = Number(req.params.id);
-  if (!anime.some(a => a.id === id)) return fail(res, 404, 'ไม่พบอนิเมะเรื่องนี้');
+  if (!validAnimeId(id)) return fail(res, 400, 'id ไม่ถูกต้อง');
   listOf(req.member.id).add(id);
   res.json({ animeId: id });
 });
@@ -128,9 +135,9 @@ app.delete('/api/me/wishlist/:id', login, (req, res) => { listOf(req.member.id).
 
 // ---------- หลังบ้าน (admin เท่านั้น ตรวจที่ server ทุกครั้ง) ----------
 app.get('/api/admin/stats', admin, (req, res) => {
-  const topVoted = anime
-    .map(a => ({ id: a.id, title: a.title, titleTh: a.titleTh, poster: a.poster, ...voteStats(a.id) }))
-    .filter(a => a.voteCount > 0)
+  const votedIds = [...new Set([...votes.keys()].map(k => Number(k.split(':')[0])))];
+  const topVoted = votedIds
+    .map(id => ({ id, ...voteStats(id) }))                 // ชื่อเรื่อง FE ไปดึงจาก TENRAI ด้วย id
     .sort((a, b) => b.voteAverage - a.voteAverage || b.voteCount - a.voteCount)
     .slice(0, 5);
   res.json({
@@ -162,7 +169,11 @@ function readAnimeBody(body) {
   const year = body.year === '' || body.year == null ? null : Number(body.year);
   const episodes = body.episodes === '' || body.episodes == null ? null : Number(body.episodes);
   if ((year != null && !Number.isInteger(year)) || (episodes != null && !Number.isInteger(episodes))) return { error: 'ปีและจำนวนตอนต้องเป็นตัวเลข' };
-  return { value: { title, titleTh: body.titleTh || null, year, genre: body.genre || null, episodes, status: body.status || 'finished', poster: body.poster || null, synopsis: body.synopsis || '', rating: body.rating ?? null } };
+  const status = body.status || 'finished';
+  if (!['airing', 'finished', 'upcoming'].includes(status)) return { error: 'status ต้องเป็น airing, finished หรือ upcoming' };
+  const value = { title, titleTh: body.titleTh || null, year, genre: body.genre || null, episodes, status, poster: body.poster || null, synopsis: body.synopsis || '' };
+  if (body.rating !== undefined) value.rating = body.rating;   // ไม่ส่งมา = คงค่าเดิม (ตอนแก้ไข) ไม่ใช่ล้างเป็น null
+  return { value };
 }
 app.get('/api/admin/anime/:id', admin, (req, res) => {
   const a = anime.find(x => x.id === Number(req.params.id));
@@ -171,7 +182,7 @@ app.get('/api/admin/anime/:id', admin, (req, res) => {
 app.post('/api/admin/anime', admin, (req, res) => {
   const { value, error } = readAnimeBody(req.body);
   if (error) return fail(res, 400, error);
-  const a = { id: nextAnimeId++, ...value };
+  const a = { rating: null, id: nextAnimeId++, ...value };
   anime.push(a);
   res.status(201).json(a);
 });
@@ -186,7 +197,7 @@ app.put('/api/admin/anime/:id', admin, (req, res) => {
 app.delete('/api/admin/anime/:id', admin, (req, res) => {
   const i = anime.findIndex(x => x.id === Number(req.params.id));
   if (i < 0) return fail(res, 404, 'ไม่พบอนิเมะเรื่องนี้');
-  anime.splice(i, 1);
+  anime.splice(i, 1);   // ไม่ลบรีวิว/คะแนน/wishlist เพราะอ้างด้วย id ของ TENRAI ไม่ใช่ id ในรายการของทีม
   res.status(204).end();
 });
 

@@ -131,7 +131,7 @@ function AdminAnimeForm() {
 
       <ConfirmBox open={confirmDelete} busy={saving} title={`ลบ ${form.title} ?`} confirmText="ลบ"
                   onConfirm={handleDelete} onCancel={() => setConfirmDelete(false)}>
-        <p>ลบแล้วกู้คืนไม่ได้ รีวิวและคะแนนของเรื่องนี้จะหายไปด้วย</p>
+        <p>ลบแล้วกู้คืนไม่ได้ (รีวิวและคะแนนของสมาชิกผูกกับ id ของ TENRAI จึงไม่ถูกลบ)</p>
       </ConfirmBox>
     </div>
   );

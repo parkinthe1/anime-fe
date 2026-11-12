@@ -1,8 +1,6 @@
-// ที่เตรียมไว้สำหรับต่อ TENRAI API (รูปแบบข้อมูลเหมือน Jikan/MyAnimeList) ในขั้นถัดไป
-// ตอนนี้ "ยังไม่ถูกเรียกใช้ที่ไหน" ทุกหน้าใช้ข้อมูลจาก backend (src/api/backend.js) เพราะ wishlist/คะแนน/รีวิว/หลังบ้าน
-// อ้าง id ของอนิเมะชุดเดียวกับ backend ถ้าเอา id ของ TENRAI (mal_id) มาปนจะ 404
-// มีแค่ตัวแปลง JSON ของ TENRAI ให้เป็นรูปร่างเดียวกับ mock/anime.json
-// พอต่อจริง: ให้ backend (Go) ดึงจาก TENRAI แล้วเก็บลงฐานข้อมูล แล้วหน้าเว็บยังเรียกผ่าน backend.js เหมือนเดิม
+// ดึงข้อมูลอนิเมะ (ชื่อ โปสเตอร์ เรื่องย่อ ฯลฯ) จาก TENRAI API โดยตรง (รูปแบบข้อมูลเหมือน Jikan/MyAnimeList)
+// id ของอนิเมะทั้งเว็บ = mal_id ของ TENRAI ส่วน backend (Go) เก็บแค่ของสมาชิก: คะแนน รีวิว wishlist โดยอ้างด้วย id นี้
+// แปลงเป็นรูปร่างเดียวกับ { id, title, titleTh, ... } เพื่อให้การ์ด/หน้ารายละเอียดใช้ร่วมกันได้
 
 const TENRAI = 'https://api.tenrai.org/v1';
 
@@ -24,20 +22,22 @@ export function toAnime(j) {
   };
 }
 
-// TODO (ขั้นต่อไป): ต่อใช้งานจริง และระวัง rate limit ของ TENRAI (ประมาณ 3 request ต่อวินาที)
+// ระวัง rate limit ของ TENRAI (ประมาณ 3 request ต่อวินาที) ถ้าต้องดึงหลายเรื่องให้ทยอยเรียก
+async function tenraiFetch(path) {
+  const res = await fetch(`${TENRAI}${path}`);
+  if (!res.ok) {
+    const err = new Error(res.status === 404 ? 'ไม่พบอนิเมะเรื่องนี้' : `TENRAI ตอบกลับ ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  return (await res.json()).data;
+}
+
 export async function getTopAnime() {
-  const res = await fetch(`${TENRAI}/top/anime`);
-  if (!res.ok) throw new Error(`TENRAI ตอบกลับ ${res.status}`);
-  const data = await res.json();
-  return data.data.map(toAnime);
+  const data = await tenraiFetch('/top/anime');
+  return data.map(toAnime);
 }
 export async function getAnimeById(id) {
-  const res = await fetch(`${TENRAI}/anime/${id}`);
-
-  if (!res.ok) {
-    throw new Error(`TENRAI ตอบกลับ ${res.status}`);
-  }
-
-  const data = await res.json();
-  return toAnime(data.data);
+  return toAnime(await tenraiFetch(`/anime/${id}`));
 }
+

@@ -36,11 +36,13 @@ export const changePassword = (currentPassword, newPassword, token) =>
   apiFetch('/api/me/password', { method: 'PUT', body: { currentPassword, newPassword }, token });
 
 // ---------- อนิเมะ (guest ดูได้) ----------
+// ข้อมูลอนิเมะที่คนทั่วไปเห็นมาจาก TENRAI (src/api/tenrai.js) ส่วน getAnimeList นี้ใช้เฉพาะหลังบ้านจัดการรายการของทีม
 export async function getAnimeList() {
   const data = await apiFetch('/api/anime');
   return data.items;
 }
-export const getAnime = (animeId) => apiFetch(`/api/anime/${animeId}`);
+// คะแนนเฉลี่ยจากสมาชิก AniWave ของอนิเมะ 1 เรื่อง (id ของ TENRAI) -> { voteAverage, voteCount }
+export const getAnimeStats = (animeId) => apiFetch(`/api/anime/${animeId}/stats`);
 
 // ---------- รีวิว / คะแนน (member) ----------
 export const getReviews = (animeId) => apiFetch(`/api/anime/${animeId}/reviews`);          // { items }
@@ -50,7 +52,7 @@ export const putVote = (animeId, score, token) =>
   apiFetch(`/api/anime/${animeId}/vote`, { method: 'PUT', body: { score }, token });
 
 // ---------- Wishlist (member) ----------
-export const getWishlist = (token) => apiFetch('/api/me/wishlist', { token });             // { items }
+export const getWishlist = (token) => apiFetch('/api/me/wishlist', { token });             // { items: [{ id }] } มีแค่ id ชื่อ/โปสเตอร์ไปดึงจาก TENRAI
 export const addToWishlist = (animeId, token) => apiFetch(`/api/me/wishlist/${animeId}`, { method: 'PUT', token });
 export const removeFromWishlist = (animeId, token) => apiFetch(`/api/me/wishlist/${animeId}`, { method: 'DELETE', token });
 

@@ -5,7 +5,8 @@ import ReviewList from '../components/ReviewList';
 import AnimeActions from '../components/AnimeActions';
 import { ErrorBox, Loading } from '../components/common/States';
 import { useAuth } from '../auth/AuthContext';
-import { getAnime, getReviews, postReview } from '../api/backend';
+import { getAnimeById } from '../api/tenrai';
+import { getAnimeStats, getReviews, postReview } from '../api/backend';
 
 const STATUS_TH = { airing: 'กำลังฉาย', finished: 'จบแล้ว', upcoming: 'ยังไม่ฉาย' };
 
@@ -15,6 +16,7 @@ function AnimeDetail() {
   const [anime, setAnime] = useState(null);
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
+  const [stats, setStats] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -24,7 +26,7 @@ function AnimeDetail() {
       setStatus('loading');
       setError(null);
       try {
-        const a = await getAnime(id);
+        const a = await getAnimeById(id);
         if (!ignore) { setAnime(a); setStatus('success'); }
       } catch (err) {
         if (!ignore) { setError(err); setStatus('error'); }
@@ -33,6 +35,16 @@ function AnimeDetail() {
     load();
     return () => { ignore = true; };
   }, [id, reloadKey]);
+
+  // คะแนนจากสมาชิกอยู่ที่ backend ของเรา แยก effect: ถ้าดึงไม่ได้ก็แค่ไม่แสดงคะแนนส่วนนี้
+  useEffect(() => {
+    let ignore = false;
+    setStats(null);
+    Promise.resolve(getAnimeStats(id))
+      .then(data => { if (!ignore) setStats(data ?? null); })
+      .catch(() => {});
+    return () => { ignore = true; };
+  }, [id]);
 
   // รีวิวแยก effect: ถ้าโหลดรีวิวพัง หน้าเรื่องยังดูได้
   useEffect(() => {
@@ -80,8 +92,8 @@ function AnimeDetail() {
             {anime.status && ` | ${STATUS_TH[anime.status] ?? anime.status}`}
             {anime.rating != null && ` | ⭐ ${anime.rating}`}
           </p>
-          {anime.voteCount > 0 && (
-            <p className="mt-1 text-xs text-slate-500">คะแนนจากสมาชิก AniWave ⭐ {anime.voteAverage} ({anime.voteCount} โหวต)</p>
+          {stats?.voteCount > 0 && (
+            <p className="mt-1 text-xs text-slate-500">คะแนนจากสมาชิก AniWave ⭐ {stats.voteAverage} ({stats.voteCount} โหวต)</p>
           )}
           <p className="mt-4 leading-relaxed text-slate-300">{anime.synopsis || 'ยังไม่มีเรื่องย่อ'}</p>
 

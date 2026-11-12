@@ -3,9 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '../auth/AuthContext';
 import AnimeDetail from './AnimeDetail';
-import { getAnime, getReviews, postReview } from '../api/backend';
+import { getAnimeById } from '../api/tenrai';
+import { getAnimeStats, getReviews, postReview } from '../api/backend';
 
 jest.mock('../api/backend');
+jest.mock('../api/tenrai');
 
 const FRIEREN = { id: 1, title: 'Frieren', titleTh: 'คำอำลาของฟรีเรน', year: 2023, genre: 'Fantasy', episodes: 28, status: 'finished', rating: 9.3, synopsis: 'เอลฟ์ออกเดินทางอีกครั้ง', poster: null };
 
@@ -19,21 +21,44 @@ function renderDetail() {
   );
 }
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  getAnimeStats.mockResolvedValue({ voteAverage: null, voteCount: 0 });
+});
 
 test('โหลดสำเร็จ ต้องเห็นรายละเอียดและรีวิวที่มีอยู่', async () => {
-  getAnime.mockResolvedValue(FRIEREN);
+  getAnimeById.mockResolvedValue(FRIEREN);
   getReviews.mockResolvedValue({ items: [{ id: 1, text: 'ภาพสวยมาก', createdAt: '2026-11-01T00:00:00.000Z', score: 9, member: { id: 5, displayName: 'Mai' } }] });
   renderDetail();
 
   expect(await screen.findByRole('heading', { name: 'Frieren' })).toBeInTheDocument();
   expect(screen.getByText('เอลฟ์ออกเดินทางอีกครั้ง')).toBeInTheDocument();
   expect(await screen.findByText('ภาพสวยมาก')).toBeInTheDocument();
-  expect(getAnime).toHaveBeenCalledWith('1');
+  expect(getAnimeById).toHaveBeenCalledWith('1');
+});
+
+test('มีคะแนนจากสมาชิก ต้องแสดงค่าเฉลี่ยที่ได้จาก backend', async () => {
+  getAnimeById.mockResolvedValue(FRIEREN);
+  getAnimeStats.mockResolvedValue({ voteAverage: 8.5, voteCount: 4 });
+  getReviews.mockResolvedValue({ items: [] });
+  renderDetail();
+
+  expect(await screen.findByText(/8\.5.*4 โหวต/)).toBeInTheDocument();
+  expect(getAnimeStats).toHaveBeenCalledWith('1');
+});
+
+test('backend ดึงคะแนนไม่ได้ หน้าเรื่องต้องยังแสดงได้ปกติ', async () => {
+  getAnimeById.mockResolvedValue(FRIEREN);
+  getAnimeStats.mockRejectedValue(new Error('down'));
+  getReviews.mockResolvedValue({ items: [] });
+  renderDetail();
+
+  expect(await screen.findByRole('heading', { name: 'Frieren' })).toBeInTheDocument();
+  expect(screen.queryByText(/โหวต\)/)).not.toBeInTheDocument();
 });
 
 test('guest ต้องไม่เห็นฟอร์มรีวิว แต่เห็นลิงก์ให้ไปเข้าสู่ระบบ', async () => {
-  getAnime.mockResolvedValue(FRIEREN);
+  getAnimeById.mockResolvedValue(FRIEREN);
   getReviews.mockResolvedValue({ items: [] });
   renderDetail();
 
@@ -47,7 +72,7 @@ test('guest ต้องไม่เห็นฟอร์มรีวิว แ�
 test('ไม่พบเรื่อง (404) ต้องเห็นข้อความจาก server และลิงก์กลับ ไม่มีปุ่มลองใหม่', async () => {
   const err = new Error('ไม่พบอนิเมะเรื่องนี้');
   err.status = 404;
-  getAnime.mockRejectedValue(err);
+  getAnimeById.mockRejectedValue(err);
   getReviews.mockResolvedValue({ items: [] });
   renderDetail();
 
@@ -60,7 +85,7 @@ test('member ส่งรีวิว ต้องเรียก backend ด้
   const user = userEvent.setup();
   localStorage.setItem('aniwave.token', 'tok');
   localStorage.setItem('aniwave.member', JSON.stringify({ id: 1, displayName: 'Demo', role: 'member' }));
-  getAnime.mockResolvedValue(FRIEREN);
+  getAnimeById.mockResolvedValue(FRIEREN);
   getReviews.mockResolvedValue({ items: [] });
   postReview.mockResolvedValue({ id: 9, text: 'สนุกมาก เนื้อเรื่องดี', createdAt: '2026-11-11T00:00:00.000Z' });
   renderDetail();

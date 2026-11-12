@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { getAdminStats } from '../../api/backend';
+import { getAnimeById } from '../../api/tenrai';
 import { ErrorBox, Loading } from '../../components/common/States';
 
 const dateTH = (iso) => new Date(iso).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -22,6 +23,7 @@ function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
+  const [titles, setTitles] = useState({});   // id -> ชื่อ (ดึงจาก TENRAI เพราะ backend เก็บแค่ id)
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -38,6 +40,23 @@ function AdminDashboard() {
     load();
     return () => { ignore = true; };
   }, [token, reloadKey]);
+
+  useEffect(() => {
+    if (!stats) return;
+    let ignore = false;
+    (async () => {
+      for (let i = 0; i < stats.topVoted.length; i++) {
+        const a = stats.topVoted[i];
+        if (a.title) continue;
+        if (i > 0) await new Promise(r => setTimeout(r, 350));   // กัน rate limit ของ TENRAI
+        try {
+          const detail = await getAnimeById(a.id);
+          if (!ignore) setTitles(t => ({ ...t, [a.id]: detail.title }));
+        } catch { /* ไม่ได้ชื่อก็แสดงเป็นเลข id */ }
+      }
+    })();
+    return () => { ignore = true; };
+  }, [stats]);
 
   if (status === 'loading') return <Loading />;
   if (status === 'error') return <ErrorBox error={error} onRetry={() => setReloadKey(k => k + 1)} />;
@@ -64,7 +83,7 @@ function AdminDashboard() {
                 <li key={a.id} className="flex items-center gap-3 py-2">
                   <span className="w-5 text-sm text-slate-500">{i + 1}</span>
                   <div className="min-w-0 flex-1">
-                    <Link to={`/anime/${a.id}`} className="block truncate text-sm font-medium text-white hover:text-violet-300">{a.title}</Link>
+                    <Link to={`/anime/${a.id}`} className="block truncate text-sm font-medium text-white hover:text-violet-300">{a.title ?? titles[a.id] ?? `อนิเมะ #${a.id}`}</Link>
                     {a.titleTh && <p className="truncate text-xs text-slate-400">{a.titleTh}</p>}
                   </div>
                   <span className="text-sm text-slate-300">⭐ {a.voteAverage} <span className="text-xs text-slate-500">({a.voteCount})</span></span>
