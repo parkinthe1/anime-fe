@@ -31,8 +31,8 @@ test('guest (ยังไม่ login) ต้องถูกพาไปหน�
 });
 
 test('มี token ใน localStorage แล้ว ต้องเห็นหน้าลับ', () => {
-  localStorage.setItem('aniwave.token', 'mock.1.abc');
-  localStorage.setItem('aniwave.member', JSON.stringify({ id: 1, displayName: 'Demo', role: 'member' }));
+  localStorage.setItem('musicken.token', 'mock.1.abc');
+  localStorage.setItem('musicken.member', JSON.stringify({ id: 1, displayName: 'Demo', role: 'member' }));
 
   renderAt('/me');
 

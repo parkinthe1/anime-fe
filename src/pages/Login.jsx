@@ -29,8 +29,7 @@ function Login() {
 
   return (
     <div className="mx-auto max-w-sm px-4 py-12">
-      <div className="rounded-lg border-2 border-ink bg-white p-6 shadow-panel">
-      <h1 className="text-2xl font-medium text-ink">เข้าสู่ระบบ</h1>
+      <h1 className="text-2xl font-semibold text-white">เข้าสู่ระบบ</h1>
       <form onSubmit={handleSubmit} className="mt-6 space-y-3">
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                placeholder="อีเมล" aria-label="อีเมล" required className={inputClass} />
@@ -39,12 +38,11 @@ function Login() {
         <button type="submit" disabled={status === 'submitting'} className={btnPrimary + ' w-full'}>
           {status === 'submitting' ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
         </button>
-        {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+        {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
       </form>
-      <p className="mt-6 text-sm text-mute">
-        ยังไม่มีบัญชี? <Link to="/register" className="font-medium text-sea underline">สมัครสมาชิก</Link>
+      <p className="mt-6 text-sm text-slate-400">
+        ยังไม่มีบัญชี? <Link to="/register" className="text-violet-400 hover:underline">สมัครสมาชิก</Link>
       </p>
-      </div>
     </div>
   );
 }

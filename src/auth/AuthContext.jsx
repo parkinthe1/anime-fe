@@ -3,8 +3,8 @@ import { login as loginApi, register as registerApi, getMe } from '../api/backen
 
 const AuthContext = createContext(null);
 
-export const TOKEN_KEY = 'aniwave.token';
-export const MEMBER_KEY = 'aniwave.member';
+export const TOKEN_KEY = 'musicken.token';
+export const MEMBER_KEY = 'musicken.member';
 
 function readMember() {
   try {

@@ -6,11 +6,11 @@ import { updateProfile, changePassword } from '../api/backend';
 
 jest.mock('../api/backend');
 
-const ME = { id: 1, email: 'demo@aniwave.test', displayName: 'Demo', role: 'member' };
+const ME = { id: 1, email: 'demo@musicken.test', displayName: 'Demo', role: 'member' };
 
 function renderProfile() {
-  localStorage.setItem('aniwave.token', 'tok');
-  localStorage.setItem('aniwave.member', JSON.stringify(ME));
+  localStorage.setItem('musicken.token', 'tok');
+  localStorage.setItem('musicken.member', JSON.stringify(ME));
   return render(<AuthProvider><Profile /></AuthProvider>);
 }
 
@@ -25,7 +25,7 @@ beforeEach(() => localStorage.clear());
 test('ต้องแสดงอีเมล บทบาท และชื่อปัจจุบันของสมาชิก', () => {
   renderProfile();
 
-  expect(screen.getByText(/demo@aniwave.test/)).toBeInTheDocument();
+  expect(screen.getByText(/demo@musicken.test/)).toBeInTheDocument();
   expect(screen.getByText('member')).toBeInTheDocument();
   expect(screen.getByLabelText('ชื่อที่แสดง')).toHaveValue('Demo');
 });
@@ -41,7 +41,7 @@ test('แก้ชื่อ ต้องเรียก backend ด้วยช�
 
   expect(updateProfile).toHaveBeenCalledWith('ชื่อใหม่', 'tok');
   expect(await screen.findByText('บันทึกชื่อเรียบร้อยแล้ว')).toBeInTheDocument();
-  expect(JSON.parse(localStorage.getItem('aniwave.member')).displayName).toBe('ชื่อใหม่');
+  expect(JSON.parse(localStorage.getItem('musicken.member')).displayName).toBe('ชื่อใหม่');
 });
 
 test('เปลี่ยนรหัสผ่านสำเร็จ ต้องเรียก backend ด้วยรหัสเก่า รหัสใหม่ token แล้วล้างช่องกรอก', async () => {

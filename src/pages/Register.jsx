@@ -33,8 +33,7 @@ function Register() {
 
   return (
     <div className="mx-auto max-w-sm px-4 py-12">
-      <div className="rounded-lg border-2 border-ink bg-white p-6 shadow-panel">
-      <h1 className="text-2xl font-medium text-ink">สมัครสมาชิก</h1>
+      <h1 className="text-2xl font-semibold text-white">สมัครสมาชิก</h1>
       <form onSubmit={handleSubmit} className="mt-6 space-y-3">
         <input value={displayName} onChange={(e) => setDisplayName(e.target.value)}
                placeholder="ชื่อที่แสดง" aria-label="ชื่อที่แสดง" required className={inputClass} />
@@ -47,12 +46,11 @@ function Register() {
         <button type="submit" disabled={status === 'submitting'} className={btnPrimary + ' w-full'}>
           {status === 'submitting' ? 'กำลังสมัคร...' : 'สมัครสมาชิก'}
         </button>
-        {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+        {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
       </form>
-      <p className="mt-6 text-sm text-mute">
-        มีบัญชีแล้ว? <Link to="/login" className="font-medium text-sea underline">เข้าสู่ระบบ</Link>
+      <p className="mt-6 text-sm text-slate-400">
+        มีบัญชีแล้ว? <Link to="/login" className="text-violet-400 hover:underline">เข้าสู่ระบบ</Link>
       </p>
-      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 // ชั้นกลางเดียวที่คุยกับ Backend ของทีม (Go) ทุกหน้าเรียกผ่านไฟล์นี้ ไม่ fetch เองในหน้า
-// '' = origin เดียวกับหน้าเว็บ (CRA proxy /api ไปที่ mock พอร์ต 4000)
+// '' = origin เดียวกับหน้าเว็บ (CRA proxy /api ไปที่ Go ในเครื่องพอร์ต 8080)
 // ต่อ Go จริง: REACT_APP_API_URL=https://<ชื่อ>.onrender.com (ตั้งใน .env และใน Vercel)
 const BASE = process.env.REACT_APP_API_URL || '';
 
@@ -13,7 +13,7 @@ export async function apiFetch(path, { method = 'GET', body, token } = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  if (res.status === 204) return null;                       // ลบสำเร็จ ไม่มี body
+  if (res.status === 204) return null;                       // สำเร็จแต่ไม่มี body (ลบ, เพิ่มเพลง ฯลฯ)
 
   const data = await res.json().catch(() => ({ error: 'server ไม่ได้ตอบเป็น JSON (backend ยังไม่พร้อม?)' }));
   if (!res.ok) {
@@ -35,27 +35,63 @@ export const updateProfile = (displayName, token) =>
 export const changePassword = (currentPassword, newPassword, token) =>
   apiFetch('/api/me/password', { method: 'PUT', body: { currentPassword, newPassword }, token });
 
-// ---------- อนิเมะ (guest ดูได้) ----------
-// ข้อมูลอนิเมะมาจาก TENRAI (src/api/tenrai.js) ส่วนนี้คือสิ่งที่ admin แก้ทับ -> [{ id, titleTh, genre, poster, synopsis }]
-// (ช่องที่เป็น null = ใช้ของ TENRAI) ผสมเข้ากับข้อมูลของ TENRAI ด้วย src/api/catalog.js
-export async function getAnimeOverrides() {
-  const data = await apiFetch('/api/anime-overrides');
+// ---------- เพลง ศิลปิน เพลย์ลิสต์สาธารณะ (guest ดูได้) ----------
+// รายการเพลง -> { items, total }  (แบ่งหน้าด้วย limit/offset)
+export function getSongs({ q = '', genre = '', limit = 24, offset = 0 } = {}) {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (genre) params.set('genre', genre);
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+  return apiFetch(`/api/songs?${params}`);
+}
+export const getSong = (id) => apiFetch(`/api/songs/${id}`);
+export async function getGenres() {
+  const data = await apiFetch('/api/genres');
   return data.items;
 }
-// คะแนนเฉลี่ยจากสมาชิก AniWave ของอนิเมะ 1 เรื่อง (id ของ TENRAI) -> { voteAverage, voteCount }
-export const getAnimeStats = (animeId) => apiFetch(`/api/anime/${animeId}/stats`);
+export async function getArtists(q = '') {
+  const data = await apiFetch(`/api/artists${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+  return data.items;
+}
+export const getArtist = (id) => apiFetch(`/api/artists/${id}`);                          // ศิลปิน + songs
+export async function getPublicPlaylists(q = '') {
+  const data = await apiFetch(`/api/playlists${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+  return data.items;
+}
+export const getPublicPlaylist = (id) => apiFetch(`/api/playlists/${id}`);                // เพลย์ลิสต์ + songs
 
-// ---------- รีวิว / คะแนน (member) ----------
-export const getReviews = (animeId) => apiFetch(`/api/anime/${animeId}/reviews`);          // { items }
-export const postReview = (animeId, text, token) =>
-  apiFetch(`/api/anime/${animeId}/reviews`, { method: 'POST', body: { text }, token });
-export const putVote = (animeId, score, token) =>
-  apiFetch(`/api/anime/${animeId}/vote`, { method: 'PUT', body: { score }, token });
+// ---------- เพลย์ลิสต์ของฉัน (member) ----------
+export async function getMyPlaylists(token) {
+  const data = await apiFetch('/api/me/playlists', { token });
+  return data.items;
+}
+export const createPlaylist = (fields, token) =>
+  apiFetch('/api/me/playlists', { method: 'POST', body: fields, token });                 // fields = { name, description, isPublic }
+export const getMyPlaylist = (id, token) => apiFetch(`/api/me/playlists/${id}`, { token });
+export const updatePlaylist = (id, fields, token) =>
+  apiFetch(`/api/me/playlists/${id}`, { method: 'PUT', body: fields, token });
+export const deletePlaylist = (id, token) =>
+  apiFetch(`/api/me/playlists/${id}`, { method: 'DELETE', token });
+export const addSongToPlaylist = (playlistId, songId, token) =>
+  apiFetch(`/api/me/playlists/${playlistId}/songs/${songId}`, { method: 'PUT', token });
+export const removeSongFromPlaylist = (playlistId, songId, token) =>
+  apiFetch(`/api/me/playlists/${playlistId}/songs/${songId}`, { method: 'DELETE', token });
+export const reorderPlaylist = (playlistId, songIds, token) =>
+  apiFetch(`/api/me/playlists/${playlistId}/order`, { method: 'PUT', body: { songIds }, token });   // คืนเพลย์ลิสต์ที่เรียงใหม่
 
-// ---------- Wishlist (member) ----------
-export const getWishlist = (token) => apiFetch('/api/me/wishlist', { token });             // { items: [{ id }] } มีแค่ id ชื่อ/โปสเตอร์ไปดึงจาก TENRAI
-export const addToWishlist = (animeId, token) => apiFetch(`/api/me/wishlist/${animeId}`, { method: 'PUT', token });
-export const removeFromWishlist = (animeId, token) => apiFetch(`/api/me/wishlist/${animeId}`, { method: 'DELETE', token });
+// ---------- ถูกใจ / ประวัติการฟัง (member) ----------
+export const likePlaylist = (id, token) => apiFetch(`/api/playlists/${id}/like`, { method: 'PUT', token });         // { liked, likeCount }
+export const unlikePlaylist = (id, token) => apiFetch(`/api/playlists/${id}/like`, { method: 'DELETE', token });
+export async function getMyLikes(token) {
+  const data = await apiFetch('/api/me/likes', { token });
+  return data.items;
+}
+export const recordPlay = (songId, token) => apiFetch(`/api/songs/${songId}/play`, { method: 'POST', token });
+export async function getHistory(token) {
+  const data = await apiFetch('/api/me/history', { token });
+  return data.items;
+}
 
 // ---------- หลังบ้าน (admin เท่านั้น member ได้ 403 จาก Go) ----------
 export const getAdminStats = (token) => apiFetch('/api/admin/stats', { token });
@@ -65,9 +101,14 @@ export async function getAdminMembers(token) {
 }
 export const setMemberRole = (memberId, role, token) =>
   apiFetch(`/api/admin/members/${memberId}/role`, { method: 'PUT', body: { role }, token });
-// แก้ทับข้อมูลของ TENRAI: fields = { titleTh, genre, poster, synopsis } (ช่องที่ไม่แก้ส่ง null)
-export const putAnimeOverride = (animeId, fields, token) =>
-  apiFetch(`/api/admin/anime-overrides/${animeId}`, { method: 'PUT', body: fields, token });
-// ลบที่แก้ไว้ทั้งหมด = กลับไปใช้ข้อมูลของ TENRAI
-export const deleteAnimeOverride = (animeId, token) =>
-  apiFetch(`/api/admin/anime-overrides/${animeId}`, { method: 'DELETE', token });
+export const createSong = (fields, token) => apiFetch('/api/admin/songs', { method: 'POST', body: fields, token });
+export const updateSong = (id, fields, token) => apiFetch(`/api/admin/songs/${id}`, { method: 'PUT', body: fields, token });
+export const deleteSong = (id, token) => apiFetch(`/api/admin/songs/${id}`, { method: 'DELETE', token });
+export const createArtist = (fields, token) => apiFetch('/api/admin/artists', { method: 'POST', body: fields, token });
+export const updateArtist = (id, fields, token) => apiFetch(`/api/admin/artists/${id}`, { method: 'PUT', body: fields, token });
+export const deleteArtist = (id, token) => apiFetch(`/api/admin/artists/${id}`, { method: 'DELETE', token });
+export async function getAdminPlaylists(token) {
+  const data = await apiFetch('/api/admin/playlists', { token });
+  return data.items;
+}
+export const deleteAdminPlaylist = (id, token) => apiFetch(`/api/admin/playlists/${id}`, { method: 'DELETE', token });

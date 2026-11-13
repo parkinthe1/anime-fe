@@ -20,7 +20,7 @@ function renderRegister() {
   );
 }
 
-async function fill(user, { name = 'Mai', email = 'mai@aniwave.test', pw = 'pass1234', confirm = 'pass1234' } = {}) {
+async function fill(user, { name = 'Mai', email = 'mai@musicken.test', pw = 'pass1234', confirm = 'pass1234' } = {}) {
   await user.type(screen.getByLabelText('ชื่อที่แสดง'), name);
   await user.type(screen.getByLabelText('อีเมล'), email);
   await user.type(screen.getByLabelText('รหัสผ่าน'), pw);
@@ -48,7 +48,7 @@ test('สมัครสำเร็จ ต้องส่ง email รหัส
   await fill(user);
   await user.click(screen.getByRole('button', { name: 'สมัครสมาชิก' }));
 
-  expect(register).toHaveBeenCalledWith('mai@aniwave.test', 'pass1234', 'Mai');
+  expect(register).toHaveBeenCalledWith('mai@musicken.test', 'pass1234', 'Mai');
   expect(await screen.findByRole('heading', { name: 'หน้า Login' })).toBeInTheDocument();
 });
 

@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { getAdminMembers, setMemberRole } from '../../api/backend';
 import { ErrorBox, Loading, ConfirmBox, inputClass } from '../../components/common/States';
-
-const dateTH = (iso) => new Date(iso).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+import { dateTH } from '../../utils/format';
 
 // รายชื่อสมาชิก + ปุ่มเลื่อน/ลดบทบาท (ของตัวเองกดไม่ได้ Go ก็ไม่ยอมเช่นกัน)
 function AdminMembers() {
@@ -55,19 +54,19 @@ function AdminMembers() {
     <div>
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-lg font-medium text-ink">สมาชิก</h2>
-          {status === 'success' && <p className="text-sm text-mute">ทั้งหมด {members.length} คน (admin {members.filter(m => m.role === 'admin').length})</p>}
+          <h2 className="text-lg font-semibold text-white">สมาชิก</h2>
+          {status === 'success' && <p className="text-sm text-slate-400">ทั้งหมด {members.length} คน (admin {members.filter(m => m.role === 'admin').length})</p>}
         </div>
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ค้นชื่อหรืออีเมล" className={inputClass + ' md:w-64'} />
       </div>
 
-      {actionError && <p role="alert" className="mb-3 text-sm text-red-700">{actionError}</p>}
+      {actionError && <p role="alert" className="mb-3 text-sm text-red-400">{actionError}</p>}
       {status === 'loading' && <Loading />}
       {status === 'error' && <ErrorBox error={error} onRetry={() => setReloadKey(k => k + 1)} />}
       {status === 'success' && (
-        <div className="overflow-x-auto rounded-lg border border-line bg-white">
+        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900">
           <table className="w-full text-sm">
-            <thead className="bg-foam text-left text-xs font-medium text-mute">
+            <thead className="bg-slate-800/60 text-left text-xs uppercase tracking-wide text-slate-400">
               <tr>
                 <th className="px-4 py-3">สมาชิก</th>
                 <th className="px-4 py-3">บทบาท</th>
@@ -75,24 +74,24 @@ function AdminMembers() {
                 <th className="px-4 py-3 text-right">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-line">
+            <tbody className="divide-y divide-slate-800">
               {shown.map(m => {
                 const isMe = m.id === me?.id;
                 return (
-                  <tr key={m.id} className="hover:bg-foam/60">
+                  <tr key={m.id} className="hover:bg-slate-800/40">
                     <td className="px-4 py-2">
-                      <p className="font-medium text-ink">{m.displayName} {isMe && <span className="text-xs text-mute">(คุณ)</span>}</p>
-                      <p className="text-xs text-mute">{m.email}</p>
+                      <p className="font-medium text-white">{m.displayName} {isMe && <span className="text-xs text-slate-500">(คุณ)</span>}</p>
+                      <p className="text-xs text-slate-400">{m.email}</p>
                     </td>
                     <td className="px-4 py-2">
-                      <span className={'rounded-full px-2 py-0.5 text-xs ' + (m.role === 'admin' ? 'bg-foam text-sea' : 'bg-foam text-ink/80')}>
+                      <span className={'rounded-full px-2 py-0.5 text-xs ' + (m.role === 'admin' ? 'bg-violet-500/20 text-violet-300' : 'bg-slate-800 text-slate-300')}>
                         {m.role}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-ink/80">{m.createdAt ? dateTH(m.createdAt) : '-'}</td>
+                    <td className="px-4 py-2 text-slate-300">{m.createdAt ? dateTH(m.createdAt) : '-'}</td>
                     <td className="px-4 py-2 text-right">
                       <button onClick={() => setTarget(m)} disabled={isMe}
-                              className="text-sea hover:underline disabled:cursor-not-allowed disabled:text-mute/60 disabled:no-underline">
+                              className="text-violet-400 hover:underline disabled:cursor-not-allowed disabled:text-slate-600 disabled:no-underline">
                         {m.role === 'admin' ? 'ลดเป็น member' : 'เลื่อนเป็น admin'}
                       </button>
                     </td>
@@ -100,7 +99,7 @@ function AdminMembers() {
                 );
               })}
               {shown.length === 0 && (
-                <tr><td colSpan={4} className="px-4 py-10 text-center text-mute">ไม่พบสมาชิก</td></tr>
+                <tr><td colSpan={4} className="px-4 py-10 text-center text-slate-500">ไม่พบสมาชิก</td></tr>
               )}
             </tbody>
           </table>
@@ -112,7 +111,7 @@ function AdminMembers() {
                   onConfirm={confirmRole} onCancel={() => setTarget(null)}>
         <p>{target?.role === 'admin'
           ? 'คนนี้จะเข้าหลังบ้านไม่ได้อีกเมื่อ login ใหม่'
-          : 'คนนี้จะแก้ไขอนิเมะและบทบาทของสมาชิกคนอื่นได้ มีผลเมื่อเขา login ใหม่'}</p>
+          : 'คนนี้จะจัดการเพลง ศิลปิน และบทบาทของสมาชิกคนอื่นได้ มีผลเมื่อเขา login ใหม่'}</p>
       </ConfirmBox>
     </div>
   );

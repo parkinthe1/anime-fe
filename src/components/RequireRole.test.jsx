@@ -22,8 +22,8 @@ function renderAt(path) {
 }
 
 function loginAs(member) {
-  localStorage.setItem('aniwave.token', 'mock.1.abc');
-  localStorage.setItem('aniwave.member', JSON.stringify(member));
+  localStorage.setItem('musicken.token', 'mock.1.abc');
+  localStorage.setItem('musicken.member', JSON.stringify(member));
 }
 
 beforeEach(() => localStorage.clear());

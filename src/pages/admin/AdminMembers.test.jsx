@@ -8,13 +8,13 @@ jest.mock('../../api/backend');
 
 const ME = { id: 2, displayName: 'Admin', role: 'admin' };
 const MEMBERS = [
-  { id: 1, email: 'demo@aniwave.test', displayName: 'Demo', role: 'member', createdAt: '2026-09-01T09:00:00.000Z' },
-  { id: 2, email: 'admin@aniwave.test', displayName: 'Admin', role: 'admin', createdAt: '2026-09-01T09:00:00.000Z' },
+  { id: 1, email: 'demo@musicken.test', displayName: 'Demo', role: 'member', createdAt: '2026-09-01T09:00:00.000Z' },
+  { id: 2, email: 'admin@musicken.test', displayName: 'Admin', role: 'admin', createdAt: '2026-09-01T09:00:00.000Z' },
 ];
 
 function renderPage() {
-  localStorage.setItem('aniwave.token', 'mock.2.abc');
-  localStorage.setItem('aniwave.member', JSON.stringify(ME));
+  localStorage.setItem('musicken.token', 'mock.2.abc');
+  localStorage.setItem('musicken.member', JSON.stringify(ME));
   return render(<AuthProvider><AdminMembers /></AuthProvider>);
 }
 
@@ -24,11 +24,11 @@ test('โหลดรายชื่อแล้วต้องเห็นท�
   getAdminMembers.mockResolvedValue(MEMBERS);
   renderPage();
 
-  expect(await screen.findByText('demo@aniwave.test')).toBeInTheDocument();
-  expect(screen.getByText('admin@aniwave.test')).toBeInTheDocument();
+  expect(await screen.findByText('demo@musicken.test')).toBeInTheDocument();
+  expect(screen.getByText('admin@musicken.test')).toBeInTheDocument();
   expect(getAdminMembers).toHaveBeenCalledWith('mock.2.abc');
 
-  const myRow = screen.getByText('admin@aniwave.test').closest('tr');
+  const myRow = screen.getByText('admin@musicken.test').closest('tr');
   expect(within(myRow).getByRole('button', { name: 'ลดเป็น member' })).toBeDisabled();
 });
 
@@ -37,7 +37,7 @@ test('เลื่อน member เป็น admin ต้องถามยื�
   getAdminMembers.mockResolvedValue(MEMBERS);
   setMemberRole.mockResolvedValue({ ...MEMBERS[0], role: 'admin' });
   renderPage();
-  await screen.findByText('demo@aniwave.test');
+  await screen.findByText('demo@musicken.test');
 
   await user.click(screen.getByRole('button', { name: 'เลื่อนเป็น admin' }));
   expect(setMemberRole).not.toHaveBeenCalled();           // แค่กดปุ่มยังไม่ยิง ต้องยืนยันก่อน
@@ -45,7 +45,7 @@ test('เลื่อน member เป็น admin ต้องถามยื�
   await user.click(screen.getByRole('button', { name: 'ยืนยัน' }));
 
   expect(setMemberRole).toHaveBeenCalledWith(1, 'admin', 'mock.2.abc');
-  const demoRow = (await screen.findByText('demo@aniwave.test')).closest('tr');
+  const demoRow = (await screen.findByText('demo@musicken.test')).closest('tr');
   expect(await within(demoRow).findByRole('button', { name: 'ลดเป็น member' })).toBeInTheDocument();
 });
 
@@ -54,13 +54,13 @@ test('backend ตอบ error ต้องเห็นข้อความ แ�
   getAdminMembers.mockResolvedValue(MEMBERS);
   setMemberRole.mockRejectedValue(new Error('สำหรับ admin เท่านั้น'));
   renderPage();
-  await screen.findByText('demo@aniwave.test');
+  await screen.findByText('demo@musicken.test');
 
   await user.click(screen.getByRole('button', { name: 'เลื่อนเป็น admin' }));
   await user.click(screen.getByRole('button', { name: 'ยืนยัน' }));
 
   expect(await screen.findByRole('alert')).toHaveTextContent('สำหรับ admin เท่านั้น');
-  const demoRow = screen.getByText('demo@aniwave.test').closest('tr');
+  const demoRow = screen.getByText('demo@musicken.test').closest('tr');
   expect(within(demoRow).getByRole('button', { name: 'เลื่อนเป็น admin' })).toBeInTheDocument();
 });
 
@@ -73,5 +73,5 @@ test('โหลดรายชื่อไม่สำเร็จ ต้อง�
 
   await user.click(screen.getByRole('button', { name: 'ลองใหม่' }));
 
-  expect(await screen.findByText('demo@aniwave.test')).toBeInTheDocument();
+  expect(await screen.findByText('demo@musicken.test')).toBeInTheDocument();
 });
